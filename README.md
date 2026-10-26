@@ -52,7 +52,7 @@ Dacă `window.CROSET_FIREBASE` e `null`, aplicația merge strict local, ca înai
 
 | Fișier | Ce face |
 |---|---|
-| `index.html` | toată aplicația: parser de rânduri, schema desenată, proiecte, backup, cardul de sincronizare |
+| `index.html` | toată aplicația: parser de rânduri, schema desenată, proiecte, mărime, backup, sincronizare |
 | `sync.js` | sincronizarea peste Firestore: trimite, ascultă, împacă prima conectare |
 | `firebase-config.js` | configurația proiectului Firebase |
 | `firestore.rules` | regulile de securitate, de copiat în consola Firebase |

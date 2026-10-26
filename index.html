@@ -192,6 +192,11 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
   border-radius:12px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.18);text-align:center}
 .synl{display:flex;flex-direction:column;gap:4px;margin-top:10px;font-size:.9rem;color:var(--muted)}
 .synl input{font-size:1rem}
+.info-grid label[hidden]{display:none}
+.size-res{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:14px}
+.size-res div{font-size:.85rem;color:var(--muted)}
+.size-res b{display:block;font-family:"Bricolage Grotesque",Georgia,serif;font-weight:800;font-size:1.5rem;color:var(--ink);letter-spacing:-.02em;margin-bottom:2px}
+.size-note{margin:10px 0 0;font-size:.88rem;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -277,6 +282,19 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
   <div class="chartbox" id="chart"></div>
   <div class="legend" id="legend"></div>
 </section>
+
+<details class="card info" id="sizeBox">
+  <summary><h2>Mărime</h2><span class="info-sum" id="sizeSum"></span></summary>
+  <p class="shapehint" id="sizeHint"></p>
+  <div id="sizeForm" hidden>
+    <div class="info-grid">
+      <label><span id="gaugeCmT">Cât măsoară în lățime</span><input type="text" inputmode="decimal" id="gaugeCm" placeholder="cm, ex: 12,5"></label>
+      <label><span id="gaugeRowT">La ce rând ai măsurat</span><select id="gaugeRow"></select></label>
+      <label id="gaugeHL"><span>Înălțimea la acel rând (opțional)</span><input type="text" inputmode="decimal" id="gaugeH" placeholder="cm"></label>
+    </div>
+    <div id="sizeRes"></div>
+  </div>
+</details>
 
 <section class="card">
   <h2 id="formTitle">Rândul 1</h2>
@@ -547,6 +565,40 @@ function cornerKnots(p){
     if((u.k==='ch'&&!p.chOnly)||(u.k==='shell'&&u.parts.some(function(q){return q.k==='ch';})))k.push(u0+w/2);
     u0+=w;});
   return k;
+}
+/* Geometria lucrului, în unități de ochi: 1 = lățimea unui ochi = înălțimea unui sc.
+   Folosește aceleași mărimi ca desenul (slotW, rowH), dar fără spațierea de 0.35 dintre
+   rânduri și fără gaura de 0.7 din centru: alea există doar ca schema să fie citibilă.
+     - plat:    lățimea = cel mai lat rând, înălțimea = suma înălțimilor de rând
+     - cerc:    fiecare tură adaugă înălțimea ei la rază, deci diametrul = 2 x suma
+     - colțuri: suma e apotema (centru -> mijlocul laturii); de acolo ies latura
+                (2a·tg(pi/n)) și colț la colț (2a/cos(pi/n))
+   Întoarce null dacă nu e niciun rând valid. */
+function geomOf(parsed, shape) {
+  var n = (SHAPES[shape] || SHAPES.flat).n, round = n >= 0, corners = n > 2;
+  var tg = corners ? Math.tan(Math.PI / n) : 0;
+  var se = corners ? 1 / Math.cos(Math.PI / n) : 0;
+  var rows = [], acc = 0, maxL = 0, last = null;
+  parsed.forEach(function (p, i) {
+    if (p.errs.length || !p.units.length) return;
+    var L = p.units.reduce(function (a, u) { return a + slotW(u); }, 0);
+    var H = rowH(p);
+    acc += H;
+    var o = { i: i, L: L, H: H, acc: acc };
+    if (corners) { o.m = 2 * acc * tg; o.diag = 2 * acc * se; }
+    else if (round) { o.m = 2 * acc; }
+    else { o.m = L; }
+    if (L > maxL) maxL = L;
+    rows.push(o); last = o;
+  });
+  if (!last) return null;
+  /* m = mărimea pe care o măsori cu rigla: lățimea rândului (plat),
+     diametrul (cerc) sau latura (colțuri). grow = cât adaugă un rând nou la ea. */
+  var g = { n: n, round: round, corners: corners, rows: rows, m: last.m };
+  if (corners) { g.grow = 2 * last.H * tg; g.diag = last.diag; g.growDiag = 2 * last.H * se; }
+  else if (round) { g.grow = 2 * last.H; }
+  else { g.m = maxL; g.h = last.acc; g.grow = last.H; }
+  return g;
 }
 function buildChart(group,sel){
   // group: [{part,parsed,pi}] ; first is the base piece, the rest are worked on its sides
@@ -942,7 +994,7 @@ function render(){
   var info=cache[pi],parsed=info.parsed,sel=selIndex(pt);
   $('projSel').innerHTML=st.projects.map(function(q){return '<option value="'+q.id+'"'+(q.id===p.id?' selected':'')+'>'+esc(q.name)+'</option>';}).join('');
   $('projDel').disabled=st.projects.length<2;
-  renderInfo(p);renderPartInfo(p,pt);renderTime(p);
+  renderInfo(p);renderPartInfo(p,pt);renderTime(p);renderSize(p,pt,parsed);
   $('twoSided').checked=!!p.twoSided;$('sideSeg').hidden=!p.twoSided;$('sideHint').hidden=!p.twoSided;
   $('mirrorLbl').hidden=!p.twoSided;$('mirror').checked=!!p.mirror;
   $('mirrorTxt').textContent=(editing>=0?'Modifică la fel și pe ':'Scrie la fel și pe ')+otherName(p);
@@ -1226,6 +1278,113 @@ $('projSel').addEventListener('change',function(e){st.cur=e.target.value;asking=
 $('projNew').addEventListener('click',function(){ask('Numele proiectului nou:',function(n){if(n==null)return;var q=newProject(String(n).trim()||'Proiect nou','flat');st.projects.push(q);st.cur=q.id;asking=false;resetForm();save();render();},{input:'Proiect nou',ok:'Creează'});});
 $('projRen').addEventListener('click',function(){var p=proj();ask('Nume nou:',function(n){if(txtOk(n)){p.name=n.trim();save();render();}},{input:p.name,ok:'Salvează'});});
 $('projDel').addEventListener('click',function(){var p=proj();if(st.projects.length<2)return;ask('Ștergi proiectul „'+p.name+'” cu toate părțile lui?',function(v){if(v!==true)return;st.projects=st.projects.filter(function(q){return q.id!==p.id;});st.cur=st.projects[0].id;asking=false;resetForm();save();render();},{ok:'Șterge'});});
+/* ---- mărime ---- */
+/* O singură măsurătoare cu rigla dă scara; de acolo încolo mărimea se recalculează
+   la fiecare rând nou, pentru că renderSize e chemată din render(). */
+function nTxt(x){return String(Math.round(x*10)/10).replace('.',',');}
+function cmTxt(x){return nTxt(x)+' cm';}
+function geomPart(pt,parsed){return geomOf(parsed,pt.attach?'flat':pt.shape);}
+/* cuvintele potrivite formei, ca să nu iasă „un tura” */
+function uw(pt,g){
+  var flat=!g||!g.round;
+  return flat
+    ? {un:'un rând',primul:'primul rând',nou:'Fiecare rând nou',unde:'la înălțime',
+       cand:'La ce rând ai măsurat',ce:'Cât măsoară în lățime',
+       cum:'Măsoară cu rigla lățimea unui rând terminat. Restul se calculează singur, la fiecare rând nou.'}
+    : g.corners
+    ? {un:'o tură',primul:'prima tură',nou:'Fiecare tură nouă',unde:'la latură',
+       cand:'La ce tură ai măsurat',ce:'Cât măsoară o latură',
+       cum:'Măsoară cu rigla o latură a lucrului, la o tură pe care ai terminat-o. Restul se calculează singur, la fiecare tură nouă.'}
+    : {un:'o tură',primul:'prima tură',nou:'Fiecare tură nouă',unde:'la diametru',
+       cand:'La ce tură ai măsurat',ce:'Cât măsoară dintr-o parte în alta',
+       cum:'Măsoară lucrul dintr-o parte în alta, prin mijloc, la o tură pe care ai terminat-o. Restul se calculează singur, la fiecare tură nouă.'};
+}
+/* scara unei părți măsurate: câți cm are o unitate, pe lățime și pe înălțime */
+function gaugeScale(q,g){
+  var gg=q.gauge||{},cm=num(gg.cm);
+  if(!g||!cm)return null;
+  var r=null;g.rows.forEach(function(o){if(o.i===gg.row)r=o;});
+  if(!r)r=g.rows[g.rows.length-1];
+  /* la formele rotunde, mărimea măsurată e făcută din înălțimi de tură adunate pe rază,
+     deci măsurătoarea dă direct scara pe verticală */
+  if(g.round){var s=cm/r.m;return {sw:s,sh:s};}
+  var sw=cm/r.L,hcm=num(gg.h);
+  return {sw:sw,sh:hcm?hcm/r.acc:sw};
+}
+/* scara pentru partea curentă: a ei dacă e măsurată, altfel a altei părți din proiect */
+function scaleFor(p,pt,parsed){
+  var g=geomPart(pt,parsed);
+  if(!g)return null;
+  var own=gaugeScale(pt,g);
+  if(own)return {g:g,sw:own.sw,sh:own.sh,own:true};
+  for(var i=0;i<p.parts.length;i++){
+    var q=p.parts[i];
+    if(q.id===pt.id)continue;
+    var qp=(cache&&cache[i]||{}).parsed;
+    if(!qp)continue;
+    var qg=geomPart(q,qp);
+    var s=qg&&gaugeScale(q,qg);
+    if(s)return {g:g,sw:s.sw,sh:s.sh,own:false,src:q.name};
+  }
+  return {g:g};
+}
+function renderSize(p,pt,parsed){
+  var sc=scaleFor(p,pt,parsed),g=sc&&sc.g,w=uw(pt,g);
+  var form=$('sizeForm'),hint=$('sizeHint'),res=$('sizeRes'),sum=$('sizeSum');
+  if(!g){
+    sum.textContent='încă nimic de măsurat';
+    hint.textContent='Scrie '+w.primul+' și apoi măsoară lucrul cu rigla.';
+    form.hidden=true;res.innerHTML='';
+    return;
+  }
+  form.hidden=false;
+  var gg=pt.gauge||{};
+  hint.textContent=w.cum;
+  $('gaugeCmT').textContent=w.ce;
+  $('gaugeRowT').textContent=w.cand;
+  $('gaugeHL').hidden=g.round;
+  var sel=$('gaugeRow');
+  sel.innerHTML=g.rows.map(function(o){
+    return '<option value="'+o.i+'">'+unitWord(pt)+' '+(o.i+1)+'</option>';}).join('');
+  var hasRow=g.rows.some(function(o){return o.i===gg.row;});
+  sel.value=String(hasRow?gg.row:g.rows[g.rows.length-1].i);
+  if($('gaugeCm')!==document.activeElement)$('gaugeCm').value=gg.cm||'';
+  if($('gaugeH')!==document.activeElement)$('gaugeH').value=gg.h||'';
+
+  if(!sc.sw){
+    sum.textContent='măsoară '+w.un;
+    res.innerHTML='<p class="size-note">Scrie măsura de mai sus și apare mărimea.</p>';
+    return;
+  }
+  var h='<div class="size-res">',s=sc.sh,small;
+  if(g.corners){
+    h+='<div><b>'+cmTxt(g.m*s)+'</b>latura</div><div><b>'+cmTxt(g.diag*s)+'</b>colț la colț</div>';
+    small=cmTxt(g.m*s);
+  }else if(g.round){
+    h+='<div><b>'+cmTxt(g.m*s)+'</b>dintr-o parte în alta</div>';
+    small=cmTxt(g.m*s);
+  }else{
+    h+='<div><b>'+cmTxt(g.m*sc.sw)+'</b>lățime</div><div><b>'+cmTxt(g.h*sc.sh)+'</b>înălțime</div>';
+    small=nTxt(g.m*sc.sw)+' × '+cmTxt(g.h*sc.sh);
+  }
+  h+='</div>';
+  h+='<p class="size-note">'+w.nou+' mai adaugă '+cmTxt(g.grow*s)+' '+w.unde+'.</p>';
+  if(!sc.own)h+='<p class="size-note">Calculat cu măsura luată la „'+esc(sc.src)+'”. Măsoară și partea asta dacă folosești alt fir sau altă croșetă.</p>';
+  if(!g.round&&!num(gg.h))h+='<p class="size-note">Înălțimea e socotită presupunând că un ochi e cam cât e de lat. Dacă vrei exact, măsoară și înălțimea lucrului la acel rând.</p>';
+  res.innerHTML=h;
+  sum.textContent=small;
+}
+function gaugeEdit(field,value){
+  var p=proj(),pt=part(p);
+  pt.gauge=pt.gauge||{};
+  pt.gauge[field]=value;
+  if(pt.gauge.row==null)pt.gauge.row=parseInt($('gaugeRow').value,10);
+  save();
+  renderSize(p,pt,(cache[partIdx(p)]||{}).parsed||[]);
+}
+$('gaugeCm').addEventListener('input',function(e){gaugeEdit('cm',e.target.value.trim());});
+$('gaugeH').addEventListener('input',function(e){gaugeEdit('h',e.target.value.trim());});
+$('gaugeRow').addEventListener('change',function(e){gaugeEdit('row',parseInt(e.target.value,10));});
 render();renderBkHere();
 })();
 </script>
