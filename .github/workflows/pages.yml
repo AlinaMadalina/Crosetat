@@ -1,0 +1,43 @@
+name: Publica pe GitHub Pages
+
+# Ruleaza la fiecare push pe main si publica site-ul.
+# "enablement: true" activeaza GitHub Pages pe repo daca nu e deja activat,
+# folosind permisiunile workflow-ului - nu e nevoie de niciun token manual.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Ia codul
+        uses: actions/checkout@v4
+
+      - name: Activeaza si configureaza Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Impacheteaza site-ul
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Publica
+        id: deployment
+        uses: actions/deploy-pages@v4
