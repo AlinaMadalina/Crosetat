@@ -36,6 +36,29 @@ prin design, iar datele sunt protejate de reguli și de parola contului.
 
 Dacă `window.CROSET_FIREBASE` e `null`, aplicația merge strict local, ca înainte.
 
+## Mărime
+
+Cardul **Mărime** de sub schemă. Măsori o singură dată cât e de înalt un rând —
+piciorul ochiului, de la rândul de dedesubt până sus — și alegi la ce rând ai măsurat.
+De acolo încolo mărimea se reface la fiecare rând nou, pentru că `renderSize` e chemată
+din `render()`.
+
+Măsura aia dă scara: `rowH()` spune cât e de înalt rândul în unități de ochi
+(sc = 1, dc = 1,8 …), deci centimetrii împărțiți la ea dau cât e o unitate.
+**Numărul de ochiuri nu intră în calcul** — un cerc cu 6/12/18 ochiuri și unul cu
+20/40/60 ies la fel de mari, fiindcă au același număr de ture. La formele plate
+numărul de ochiuri dă doar lățimea, iar aceea se poate măsura separat (câmp opțional).
+
+`geomOf()` calculează geometria în aceleași unități ca desenul (`slotW`, `rowH`), dar
+fără spațierea de 0.35 dintre rânduri și fără gaura de 0.7 din centru: alea există
+doar ca schema să fie citibilă, nu în lucrul adevărat.
+
+| Forma | Ce iese |
+|---|---|
+| Rânduri (plat) | lățime × înălțime |
+| Cerc | dintr-o parte în alta |
+| Colțuri | lățime, colț la colț, o latură |
+
 ## Cum ajunge pe telefon un update făcut pe laptop
 
 1. Modifici fișierele aici.

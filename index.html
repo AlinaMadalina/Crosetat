@@ -288,9 +288,9 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
   <p class="shapehint" id="sizeHint"></p>
   <div id="sizeForm" hidden>
     <div class="info-grid">
-      <label><span id="gaugeCmT">Cât măsoară în lățime</span><input type="text" inputmode="decimal" id="gaugeCm" placeholder="cm, ex: 12,5"></label>
+      <label><span id="gaugeRhT">Cât e de înalt un rând</span><input type="text" inputmode="decimal" id="gaugeRh" placeholder="cm, ex: 1,2"></label>
       <label><span id="gaugeRowT">La ce rând ai măsurat</span><select id="gaugeRow"></select></label>
-      <label id="gaugeHL"><span>Înălțimea la acel rând (opțional)</span><input type="text" inputmode="decimal" id="gaugeH" placeholder="cm"></label>
+      <label id="gaugeRwL"><span>Cât e de lat rândul (opțional)</span><input type="text" inputmode="decimal" id="gaugeRw" placeholder="cm"></label>
     </div>
     <div id="sizeRes"></div>
   </div>
@@ -1280,8 +1280,12 @@ $('projNew').addEventListener('click',function(){ask('Numele proiectului nou:',f
 $('projRen').addEventListener('click',function(){var p=proj();ask('Nume nou:',function(n){if(txtOk(n)){p.name=n.trim();save();render();}},{input:p.name,ok:'Salvează'});});
 $('projDel').addEventListener('click',function(){var p=proj();if(st.projects.length<2)return;ask('Ștergi proiectul „'+p.name+'” cu toate părțile lui?',function(v){if(v!==true)return;st.projects=st.projects.filter(function(q){return q.id!==p.id;});st.cur=st.projects[0].id;asking=false;resetForm();save();render();},{ok:'Șterge'});});
 /* ---- mărime ---- */
-/* O singură măsurătoare cu rigla dă scara; de acolo încolo mărimea se recalculează
-   la fiecare rând nou, pentru că renderSize e chemată din render(). */
+/* Măsori o singură dată cât e de înalt un rând — piciorul ochiului, de la rândul
+   de dedesubt până sus. Aia e scara: rowH() spune cât e de înalt rândul în unități
+   de ochi, deci cm-ul măsurat împărțit la ea dă cât e o unitate.
+   De acolo încolo mărimea se reface la fiecare rând nou, pentru că renderSize
+   e chemată din render(). Numărul de ochiuri nu intră în calculul înălțimii;
+   la formele plate intră doar în lățime. */
 function nTxt(x){return String(Math.round(x*10)/10).replace('.',',');}
 function cmTxt(x){return nTxt(x)+' cm';}
 function geomPart(pt,parsed){return geomOf(parsed,pt.attach?'flat':pt.shape);}
@@ -1290,23 +1294,23 @@ function uw(pt,g){
   var flat=!g||!g.round;
   return flat
     ? {un:'un rând',primul:'primul rând',nou:'Fiecare rând nou',unde:'la înălțime',
-       cand:'La ce rând ai măsurat',ce:'Lățimea rândului',
-       cum:'Măsoară cu rigla cât de lat e un rând pe care l-ai terminat. Restul se calculează singur, la fiecare rând nou.'}
+       cand:'La ce rând ai măsurat',ce:'Cât e de înalt un rând',lat:'Cât e de lat rândul (opțional)',
+       cum:'Măsoară cu rigla cât e de înalt un rând: piciorul ochiului, de la rândul de dedesubt până sus. Restul se calculează singur, la fiecare rând nou.'}
     : {un:'o tură',primul:'prima tură',nou:'Fiecare tură nouă',unde:'la lățime',
-       cand:'La ce tură ai măsurat',ce:'Lățimea turei',
-       cum:'Măsoară cu rigla cât de lat e lucrul la o tură pe care ai terminat-o, dintr-o parte în alta prin mijloc. Restul se calculează singur, la fiecare tură nouă.'};
+       cand:'La ce tură ai măsurat',ce:'Cât e de înaltă o tură',lat:'',
+       cum:'Măsoară cu rigla cât e de înaltă o tură: piciorul ochiului, de la tura de dedesubt până sus. Restul se calculează singur, la fiecare tură nouă.'};
 }
-/* scara unei părți măsurate: câți cm are o unitate, pe lățime și pe înălțime */
+/* scara unei părți măsurate: câți cm are o unitate de ochi */
 function gaugeScale(q,g){
-  var gg=q.gauge||{},cm=num(gg.cm);
+  var gg=q.gauge||{},cm=num(gg.rh);
   if(!g||!cm)return null;
   var r=null;g.rows.forEach(function(o){if(o.i===gg.row)r=o;});
   if(!r)r=g.rows[g.rows.length-1];
-  /* la formele rotunde, mărimea măsurată e făcută din înălțimi de tură adunate pe rază,
-     deci măsurătoarea dă direct scara pe verticală */
-  if(g.round){var s=cm/r.m;return {sw:s,sh:s};}
-  var sw=cm/r.L,hcm=num(gg.h);
-  return {sw:sw,sh:hcm?hcm/r.acc:sw};
+  /* rowH dă înălțimea rândului în unități (sc = 1, dc = 1,8 …) */
+  var sh=cm/r.H;
+  /* lățimea unui ochi e luată egală cu înălțimea unui sc, dacă nu s-a măsurat */
+  var w=num(gg.rw);
+  return {sh:sh,sw:(!g.round&&w)?w/r.L:sh};
 }
 /* scara pentru partea curentă: a ei dacă e măsurată, altfel a altei părți din proiect */
 function scaleFor(p,pt,parsed){
@@ -1337,18 +1341,19 @@ function renderSize(p,pt,parsed){
   form.hidden=false;
   var gg=pt.gauge||{};
   hint.textContent=w.cum;
-  $('gaugeCmT').textContent=w.ce;
+  $('gaugeRhT').textContent=w.ce;
   $('gaugeRowT').textContent=w.cand;
-  $('gaugeHL').hidden=g.round;
+  $('gaugeRwL').hidden=g.round;
+  if(!g.round)$('gaugeRwL').firstChild.textContent=w.lat;
   var sel=$('gaugeRow');
   sel.innerHTML=g.rows.map(function(o){
     return '<option value="'+o.i+'">'+unitWord(pt)+' '+(o.i+1)+'</option>';}).join('');
   var hasRow=g.rows.some(function(o){return o.i===gg.row;});
   sel.value=String(hasRow?gg.row:g.rows[g.rows.length-1].i);
-  if($('gaugeCm')!==document.activeElement)$('gaugeCm').value=gg.cm||'';
-  if($('gaugeH')!==document.activeElement)$('gaugeH').value=gg.h||'';
+  if($('gaugeRh')!==document.activeElement)$('gaugeRh').value=gg.rh||'';
+  if($('gaugeRw')!==document.activeElement)$('gaugeRw').value=gg.rw||'';
 
-  if(!sc.sw){
+  if(!sc.sh){
     sum.textContent='măsoară '+w.un;
     res.innerHTML='<p class="size-note">Scrie măsura de mai sus și apare mărimea.</p>';
     return;
@@ -1369,7 +1374,7 @@ function renderSize(p,pt,parsed){
   h+='</div>';
   h+='<p class="size-note">'+w.nou+' mai adaugă '+cmTxt(g.grow*s)+' '+w.unde+'.</p>';
   if(!sc.own)h+='<p class="size-note">Calculat cu măsura luată la „'+esc(sc.src)+'”. Măsoară și partea asta dacă folosești alt fir sau altă croșetă.</p>';
-  if(!g.round&&!num(gg.h))h+='<p class="size-note">Înălțimea e socotită presupunând că un ochi e cam cât e de lat. Dacă vrei exact, măsoară și înălțimea lucrului la acel rând.</p>';
+  if(!g.round&&!num(gg.rw))h+='<p class="size-note">Lățimea e socotită din numărul de ochiuri, presupunând că un ochi e cam cât e de înalt un sc. Dacă vrei exact, măsoară și cât e de lat rândul.</p>';
   res.innerHTML=h;
   sum.textContent=small;
 }
@@ -1381,8 +1386,8 @@ function gaugeEdit(field,value){
   save();
   renderSize(p,pt,(cache[partIdx(p)]||{}).parsed||[]);
 }
-$('gaugeCm').addEventListener('input',function(e){gaugeEdit('cm',e.target.value.trim());});
-$('gaugeH').addEventListener('input',function(e){gaugeEdit('h',e.target.value.trim());});
+$('gaugeRh').addEventListener('input',function(e){gaugeEdit('rh',e.target.value.trim());});
+$('gaugeRw').addEventListener('input',function(e){gaugeEdit('rw',e.target.value.trim());});
 $('gaugeRow').addEventListener('change',function(e){gaugeEdit('row',parseInt(e.target.value,10));});
 render();renderBkHere();
 })();
