@@ -5,7 +5,7 @@
      - iconițe și restul fișierelor proprii → cache întâi, reîmprospătat în fundal
      - fonturi Google → cache, reîmprospătat în fundal (ca să meargă offline)
 */
-var VERSION = 'v17.0.0';
+var VERSION = 'v17.0.1';
 var SHELL = 'croset-shell-' + VERSION;
 var RUNTIME = 'croset-runtime-' + VERSION;
 
