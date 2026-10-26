@@ -1,23 +1,15 @@
-/* Configurația Firebase.
-   Se completează o singură dată, din consola Firebase:
-   Project settings → General → Your apps → Web app → "SDK setup and configuration" → Config.
+/* Configurația Firebase a proiectului „crosetat”.
+   Luată din consola Firebase: Project settings → Your apps → SDK setup and configuration → Config.
 
    Valorile de aici NU sunt secrete — cheia `apiKey` e publică prin design la Firebase.
-   Datele sunt protejate de regulile Firestore (fiecare cont vede doar ce e sub uid-ul lui)
-   și de lista de domenii autorizate din Authentication → Settings.
-
-   Cât timp e `null`, aplicația merge exact ca până acum: totul local, fără sincronizare.
+   Datele sunt protejate de regulile Firestore din firestore.rules (fiecare cont vede
+   doar ce e sub propriul uid) și de parola contului, care nu apare nicăieri în cod.
 */
-window.CROSET_FIREBASE = null;
-
-/* După configurare arată așa:
-
 window.CROSET_FIREBASE = {
-  apiKey: "...",
-  authDomain: "proiectul-tau.firebaseapp.com",
-  projectId: "proiectul-tau",
-  storageBucket: "proiectul-tau.firebasestorage.app",
-  messagingSenderId: "...",
-  appId: "..."
+  apiKey: "AIzaSyAMkZhZ6vUr174RDprj-OsAjBfnpDqRlbs",
+  authDomain: "crosetat-270da.firebaseapp.com",
+  projectId: "crosetat-270da",
+  storageBucket: "crosetat-270da.firebasestorage.app",
+  messagingSenderId: "904077624976",
+  appId: "1:904077624976:web:c75dd6bc27bf913033a15"
 };
-*/

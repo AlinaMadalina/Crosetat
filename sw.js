@@ -8,7 +8,7 @@
    Apelurile către Firestore și Identity Toolkit NU trec pe aici: le lăsăm
    în seama SDK-ului, care are cozile și cache-ul lui offline.
 */
-var VERSION = 'v18.0.0';
+var VERSION = 'v18.1.0';
 var SHELL = 'croset-shell-' + VERSION;
 var RUNTIME = 'croset-runtime-' + VERSION;
 
