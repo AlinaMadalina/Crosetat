@@ -197,6 +197,9 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
 .size-res div{font-size:.85rem;color:var(--muted)}
 .size-res b{display:block;font-family:"Bricolage Grotesque",Georgia,serif;font-weight:800;font-size:1.5rem;color:var(--ink);letter-spacing:-.02em;margin-bottom:2px}
 .size-note{margin:10px 0 0;font-size:.88rem;color:var(--muted)}
+#sideWork{margin:0 0 10px}
+#sideWork .sp-b{margin-top:6px}
+.sidepick button.fin:not([aria-pressed=true]) b{color:var(--done)}
 </style>
 </head>
 <body>
@@ -333,6 +336,7 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
 </div>
 <button id="copyMissing" hidden></button>
 <button id="syncDone" hidden></button>
+<div class="sidepick" id="sideWork" hidden></div>
 <ol class="rows" id="rows"></ol>
 <p class="hint" id="listHint"></p>
 
@@ -616,7 +620,7 @@ function buildChart(group,sel){
     var maxL=Math.max.apply(null,valid.map(function(i){return lens[i];}));
     var yb=0;
     valid.forEach(function(i){
-      var p=parsed[i],L=lens[i],H=rowH(p),on=sel&&sel.pi===G.pi&&sel.ri===i,cls=on?'sel':(G.mark&&G.mark[i])||'',ref=G.pi+':'+i;
+      var p=parsed[i],L=lens[i],H=rowH(p),on=sel&&sel.pi===G.pi&&sel.ri===i&&(G.side==null||sel.ws==null||G.side===sel.ws),cls=on?'sel':(G.mark&&G.mark[i])||'',ref=G.pi+':'+i;
       var P=makeP(p,L,maxL,yb,i+1,valid[0]===i?L:lens[valid[0]]),g=[];
       function seg(a,b){grow(a[0],a[1]);grow(b[0],b[1]);g.push('M'+f(a[0])+' '+f(a[1])+'L'+f(b[0])+' '+f(b[1]));}
       var out={
@@ -663,6 +667,8 @@ function buildChart(group,sel){
     sides.forEach(function(k){
       var A=vert(k,Rc),B=vert(k+1,Rc),mid=[(A[0]+B[0])/2,(A[1]+B[1])/2],len=Math.hypot(B[0]-A[0],B[1]-A[1]);
       var t=[(B[0]-A[0])/len,(B[1]-A[1])/len],ml=Math.hypot(mid[0],mid[1]),nr=[mid[0]/ml,mid[1]/ml];
+      if(G.markBySide)G.mark=G.markBySide(k);
+      G.side=k;
       drawRows(G,function(p,L,maxL,yb,num,L1){
         var sc=Math.max(.5,Math.min(1.6,sideLen/(L1||L))),x0=(maxL-L)/2,rev=num%2===1;
         return function(u,v,s){var X=(x0+(rev?L-u:u))*sc+(rev?-s:s)-maxL*sc/2,Y=yb+v;
@@ -991,7 +997,7 @@ function countText(q){
 function shapeOptions(cur){return Object.keys(SHAPES).map(function(k){return '<option value="'+k+'"'+(k===cur?' selected':'')+'>'+SHAPES[k].name+'</option>';}).join('');}
 
 function render(){
-  var p=proj(),pi=partIdx(p),pt=p.parts[pi];cache=parseProject(p);
+  var p=proj(),pi=partIdx(p),pt=p.parts[pi];cache=parseProject(p);var ws=curSide(p,pt);
   var info=cache[pi],parsed=info.parsed,sel=selIndex(pt);
   $('projSel').innerHTML=st.projects.map(function(q){return '<option value="'+q.id+'"'+(q.id===p.id?' selected':'')+'>'+esc(q.name)+'</option>';}).join('');
   $('projDel').disabled=st.projects.length<2;
@@ -1039,8 +1045,8 @@ function render(){
   }
   // chart: base piece + pieces worked on its sides
   var end=bi+1;while(end<p.parts.length&&p.parts[end].attach)end++;
-  var group=[];for(var g=bi;g<end;g++)group.push({part:p.parts[g],parsed:cache[g].parsed,pi:g,mark:markOf(p,p.parts[g])});
-  var ch=buildChart(group,{pi:pi,ri:sel});
+  var group=[];for(var g=bi;g<end;g++){var gp=p.parts[g];var ge={part:gp,parsed:cache[g].parsed,pi:g,mark:markOf(p,gp)};if(workSides(p,gp).length)ge.markBySide=(function(q){return function(k){return markOfSide(p,q,k);};})(gp);group.push(ge);}
+  var ch=buildChart(group,{pi:pi,ri:sel,ws:ws});
   if(!ch){$('chart').innerHTML='<div class="empty">Scrie primul rând mai jos și schema apare aici.</div>';}
   else{var z=st.zoom||1;$('chart').innerHTML='<svg viewBox="'+ch.vb.map(f).join(' ')+'" width="'+f(ch.vb[2]*z)+'" height="'+f(ch.vb[3]*z)+'" role="img" aria-label="Schema de croșetat">'+ch.svg+'</svg>';}
   // list
@@ -1048,25 +1054,27 @@ function render(){
   $('showDone').checked=!!st.showDone;
   var W=unitWord(pt);
   $('listTitle').textContent=(isFlat(pt)?'Rânduri':'Ture')+': '+pt.name;
+  renderSideWork(p,pt);
+  if(ws!=null)$('listTitle').textContent+=' \u00b7 L'+(ws+1);
   var od=otherDoneList(p,pt),on=otherName(p),pend=0;
-  pt.rows.forEach(function(r,i){if(!r.done&&od[i])pend++;});
+  pt.rows.forEach(function(r,i){if(!rowDoneOn(r,ws)&&od[i])pend++;});
   $('syncDone').hidden=!pend;
   var miss=missingOnOther(p,pt).length;$('copyMissing').hidden=!miss;
   if(miss)$('copyMissing').textContent='⧉ Copiază pe '+on+' '+(miss===1?'rândul care lipsește':'cele '+miss+' rânduri care lipsesc')+' acolo';
   if(pend)$('syncDone').textContent='✓ Bifează și aici '+(pend===1?'rândul făcut':'cele '+pend+' rânduri făcute')+' pe '+on;
   $('rows').innerHTML=pt.rows.map(function(r,i){
-    var q=parsed[i],m='';
-    if(!r.done&&od[i])m+='<span class="cnt oth">✓ făcut pe '+on+'</span> ';
+    var q=parsed[i],m='',dn=rowDoneOn(r,ws);
+    if(!dn&&od[i])m+='<span class="cnt oth">✓ făcut pe '+on+'</span> ';
     q.errs.forEach(function(e){m+='<span class="msg err">'+esc(e)+'</span>';});
     q.warns.forEach(function(e){m+='<span class="msg wrn">'+esc(e)+'</span>';});
     var c=countText(q),rt=q.errs.length?null:rowTime(q,1);
     if(c&&rt&&rt.sec>0)c+='</span><span class="tm">≈ '+fmtT(rt.sec)+(rt.miss.length?'+':'');
-    return '<li class="row'+(r.done?' done':'')+(i===sel?' sel':'')+'" data-i="'+i+'">'+
-      '<input type="checkbox" aria-label="'+W+' '+(i+1)+' făcut"'+(r.done?' checked':'')+'>'+
+    return '<li class="row'+(dn?' done':'')+(i===sel?' sel':'')+'" data-i="'+i+'">'+
+      '<input type="checkbox" aria-label="'+W+' '+(i+1)+' făcut"'+(dn?' checked':'')+'>'+
       '<div><span class="n">'+W+' '+(i+1)+':</span> <span class="t">'+esc(r.text)+'</span>'+(c?'<br><span class="cnt">'+c+'</span>':'')+m+'</div>'+
       '<div class="tools"><button data-a="edit" aria-label="Editează">✎</button><button data-a="del" aria-label="Șterge">✕</button></div></li>';
   }).join('');
-  var done=pt.rows.filter(function(r){return r.done;}).length;
+  var done=pt.rows.filter(function(r){return rowDoneOn(r,ws);}).length;
   $('listHint').textContent=!pt.rows.length?'Încă nu ai niciun rând în partea asta.':(!st.showDone&&done===pt.rows.length?'Toate cele '+done+' sunt bifate.':(!st.showDone&&done?done+' bifate sunt ascunse.':''));
   // legend
   var lg=[['ch','oval'],['sl st','dot'],['sc','sc'],['hdc','hdc'],['dc','dc'],['tr','tr']];
@@ -1121,7 +1129,7 @@ $('rows').addEventListener('click',function(e){
     ask('Ștergi '+unitWord(pt).toLowerCase()+' '+(i+1)+(tr?' (și de pe '+otherName(p)+')':'')+'?',function(v){if(v!==true)return;
       if(tr)tw.rows.splice(tw.rows.indexOf(tr),1);pt.rows.splice(i,1);if(editing===i){editing=-1;$('txt').value='';}else if(editing>i)editing--;picked=-1;save();render();},{ok:'Șterge'});return;}
   if(a&&a.dataset.a==='edit'){editing=i;$('txt').value=pt.rows[i].text;render();$('txt').focus();$('txt').scrollIntoView({block:'center',behavior:'smooth'});return;}
-  if(e.target.type==='checkbox'){pt.rows[i].done=e.target.checked;if(pt.rows[i].done&&picked===i)picked=-1;if(!e.target.checked)p.finished=false;save();render();
+  if(e.target.type==='checkbox'){setRowDone(p,pt,pt.rows[i],e.target.checked);if(e.target.checked&&picked===i)picked=-1;if(!e.target.checked)p.finished=false;save();render();
     if(partDone(pt)&&!$('nextCard').hidden)$('nextCard').scrollIntoView({block:'center',behavior:'smooth'});return;}
   picked=i;render();
 });
@@ -1389,6 +1397,72 @@ function gaugeEdit(field,value){
 $('gaugeRh').addEventListener('input',function(e){gaugeEdit('rh',e.target.value.trim());});
 $('gaugeRw').addEventListener('input',function(e){gaugeEdit('rw',e.target.value.trim());});
 $('gaugeRow').addEventListener('change',function(e){gaugeEdit('row',parseInt(e.target.value,10));});
+/* ---- bife separate pe fiecare latură ---- */
+/* Rândurile se scriu o singură dată pentru toată partea. Ce se ține separat e
+   doar ce ai bifat: r.doneOn[k] = rândul e făcut pe latura k.
+   r.done rămâne „făcut pe toate laturile”, ca restul aplicației (numărători,
+   rezumate, backup, proiect terminat) să meargă nemodificată. */
+function workSides(p,pt){
+  if(!pt.attach)return [];
+  var i=p.parts.indexOf(pt);
+  if(i<0)return [];
+  var b=p.parts[baseIdx(p,i)],n=SHAPES[b.shape].n;
+  if(n<3)return [];
+  var s=sidesOf(pt,n);
+  return s.length>1?s:[];
+}
+/* latura la care se lucrează acum; null dacă partea n-are mai multe laturi */
+function curSide(p,pt){
+  var s=workSides(p,pt);
+  if(!s.length)return null;
+  return s.indexOf(pt.cur)>=0?pt.cur:s[0];
+}
+function rowDoneOn(r,k){
+  if(k==null)return !!r.done;
+  return r.doneOn?!!r.doneOn[k]:!!r.done;
+}
+function setRowDone(p,pt,r,v){
+  var ss=workSides(p,pt),k=curSide(p,pt);
+  if(k==null){r.done=v;return;}
+  if(!r.doneOn){                      /* prima oară: ce era bifat global rămâne bifat peste tot */
+    r.doneOn={};
+    if(r.done)ss.forEach(function(j){r.doneOn[j]=true;});
+  }
+  if(v)r.doneOn[k]=true;else delete r.doneOn[k];
+  r.done=ss.every(function(j){return !!r.doneOn[j];});
+}
+function sideProgress(pt,k){
+  var d=0;pt.rows.forEach(function(r){if(rowDoneOn(r,k))d++;});
+  return d+' / '+pt.rows.length;
+}
+function sideFull(pt,k){
+  return pt.rows.length>0&&pt.rows.every(function(r){return rowDoneOn(r,k);});
+}
+function markOfSide(p,pt,k){
+  var od=otherDoneList(p,pt);
+  return pt.rows.map(function(r,i){return rowDoneOn(r,k)?'dn':od[i]?'dno':'';});
+}
+function renderSideWork(p,pt){
+  var box=$('sideWork'),ss=workSides(p,pt);
+  if(!ss.length){box.hidden=true;box.innerHTML='';return;}
+  box.hidden=false;
+  var k=curSide(p,pt),gata=0;
+  ss.forEach(function(j){if(sideFull(pt,j))gata++;});
+  var h='<span class="sp-t">La ce latură lucrezi acum. Rândurile sunt aceleași peste tot; bifele se țin separat pe fiecare latură'+
+        (gata?' — '+gata+' din '+ss.length+' gata':'')+'.</span><div class="sp-b">';
+  ss.forEach(function(j){
+    var fin=sideFull(pt,j);
+    h+='<button type="button" data-ws="'+j+'" aria-pressed="'+(j===k)+'"'+(fin?' class="fin"':'')+
+       '><b>L'+(j+1)+(fin?' ✓':'')+'</b><small>'+sideProgress(pt,j)+'</small></button>';
+  });
+  box.innerHTML=h+'</div>';
+}
+$('sideWork').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-ws]');if(!b)return;
+  var p=proj(),pt=part(p);
+  pt.cur=+b.dataset.ws;picked=-1;editing=-1;$('txt').value='';
+  save();render();
+});
 render();renderBkHere();
 })();
 </script>

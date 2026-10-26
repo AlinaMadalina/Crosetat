@@ -59,6 +59,29 @@ doar ca schema să fie citibilă, nu în lucrul adevărat.
 | Cerc | dintr-o parte în alta |
 | Colțuri | lățime, colț la colț, o latură |
 
+## Laturi: aceleași rânduri, bife separate
+
+O parte atașată pe mai multe laturi ale bazei (vârfurile unei stele pe laturile unui
+pentagon) se scrie **o singură dată**: rândurile aparțin părții, nu laturii. Ce se ține
+separat e doar progresul.
+
+Deasupra listei de rânduri apare un selector `L1 … Ln` cu câte `făcute / total` are
+fiecare latură. Alegi latura la care lucrezi, iar bifele, schema și numărătorile arată
+latura aia. În schemă fiecare latură e desenată cu progresul ei, deci vezi dintr-o
+privire ce vârf e gata.
+
+Model de date:
+
+- `r.doneOn[k] = true` — rândul `r` e făcut pe latura `k`; sursa adevărului
+- `r.done` — derivat, „făcut pe toate laturile pe care se lucrează partea”.
+  Restul aplicației (numărători, rezumate, backup, „proiect terminat”) citește doar
+  `r.done`, deci nu a trebuit schimbată.
+- `pt.cur` — latura la care se lucrează acum
+
+Părțile fără laturi, sau atașate pe una singură, merg exact ca înainte: selectorul nu
+apare și se folosește `r.done`. Datele vechi, cu `r.done` dar fără `r.doneOn`, se
+citesc ca „făcut pe toate laturile”.
+
 ## Cum ajunge pe telefon un update făcut pe laptop
 
 1. Modifici fișierele aici.
