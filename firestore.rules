@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// Regulile Firestore pentru sincronizarea schemelor de croșetat.
+// Se lipesc în consola Firebase: Firestore Database → Rules → Publish.
+//
+// Fiecare cont vede și scrie doar ce e sub propriul uid. Chiar dacă altcineva
+// își face cont în proiect (cheia apiKey e publică prin design la Firebase),
+// nu poate citi nimic din datele tale.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // orice altceva e interzis
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
