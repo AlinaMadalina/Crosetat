@@ -569,11 +569,13 @@ function cornerKnots(p){
 /* Geometria lucrului, în unități de ochi: 1 = lățimea unui ochi = înălțimea unui sc.
    Folosește aceleași mărimi ca desenul (slotW, rowH), dar fără spațierea de 0.35 dintre
    rânduri și fără gaura de 0.7 din centru: alea există doar ca schema să fie citibilă.
-     - plat:    lățimea = cel mai lat rând, înălțimea = suma înălțimilor de rând
-     - cerc:    fiecare tură adaugă înălțimea ei la rază, deci diametrul = 2 x suma
-     - colțuri: suma e apotema (centru -> mijlocul laturii); de acolo ies latura
-                (2a·tg(pi/n)) și colț la colț (2a/cos(pi/n))
-   Întoarce null dacă nu e niciun rând valid. */
+
+   m = lățimea rândului, adică exact ce măsori cu rigla de-a latul lucrului:
+     - plat:    ochiurile rândului, cap la cap
+     - cerc:    dintr-o parte în alta prin mijloc, deci 2 x raza
+     - colțuri: de la o latură la cea din față, deci 2 x apotema
+   Fiecare rând adaugă înălțimea lui la rază (la formele rotunde) sau la înălțimea
+   totală (la cele plate). Întoarce null dacă nu e niciun rând valid. */
 function geomOf(parsed, shape) {
   var n = (SHAPES[shape] || SHAPES.flat).n, round = n >= 0, corners = n > 2;
   var tg = corners ? Math.tan(Math.PI / n) : 0;
@@ -584,20 +586,19 @@ function geomOf(parsed, shape) {
     var L = p.units.reduce(function (a, u) { return a + slotW(u); }, 0);
     var H = rowH(p);
     acc += H;
-    var o = { i: i, L: L, H: H, acc: acc };
-    if (corners) { o.m = 2 * acc * tg; o.diag = 2 * acc * se; }
-    else if (round) { o.m = 2 * acc; }
-    else { o.m = L; }
+    var o = { i: i, L: L, H: H, acc: acc, m: round ? 2 * acc : L };
+    if (corners) { o.diag = 2 * acc * se; o.side = 2 * acc * tg; }
     if (L > maxL) maxL = L;
     rows.push(o); last = o;
   });
   if (!last) return null;
-  /* m = mărimea pe care o măsori cu rigla: lățimea rândului (plat),
-     diametrul (cerc) sau latura (colțuri). grow = cât adaugă un rând nou la ea. */
   var g = { n: n, round: round, corners: corners, rows: rows, m: last.m };
-  if (corners) { g.grow = 2 * last.H * tg; g.diag = last.diag; g.growDiag = 2 * last.H * se; }
-  else if (round) { g.grow = 2 * last.H; }
-  else { g.m = maxL; g.h = last.acc; g.grow = last.H; }
+  if (round) {
+    g.grow = 2 * last.H;
+    if (corners) { g.diag = last.diag; g.side = last.side; }
+  } else {
+    g.m = maxL; g.h = last.acc; g.grow = last.H;
+  }
   return g;
 }
 function buildChart(group,sel){
@@ -1289,15 +1290,11 @@ function uw(pt,g){
   var flat=!g||!g.round;
   return flat
     ? {un:'un rând',primul:'primul rând',nou:'Fiecare rând nou',unde:'la înălțime',
-       cand:'La ce rând ai măsurat',ce:'Cât măsoară în lățime',
-       cum:'Măsoară cu rigla lățimea unui rând terminat. Restul se calculează singur, la fiecare rând nou.'}
-    : g.corners
-    ? {un:'o tură',primul:'prima tură',nou:'Fiecare tură nouă',unde:'la latură',
-       cand:'La ce tură ai măsurat',ce:'Cât măsoară o latură',
-       cum:'Măsoară cu rigla o latură a lucrului, la o tură pe care ai terminat-o. Restul se calculează singur, la fiecare tură nouă.'}
-    : {un:'o tură',primul:'prima tură',nou:'Fiecare tură nouă',unde:'la diametru',
-       cand:'La ce tură ai măsurat',ce:'Cât măsoară dintr-o parte în alta',
-       cum:'Măsoară lucrul dintr-o parte în alta, prin mijloc, la o tură pe care ai terminat-o. Restul se calculează singur, la fiecare tură nouă.'};
+       cand:'La ce rând ai măsurat',ce:'Lățimea rândului',
+       cum:'Măsoară cu rigla cât de lat e un rând pe care l-ai terminat. Restul se calculează singur, la fiecare rând nou.'}
+    : {un:'o tură',primul:'prima tură',nou:'Fiecare tură nouă',unde:'la lățime',
+       cand:'La ce tură ai măsurat',ce:'Lățimea turei',
+       cum:'Măsoară cu rigla cât de lat e lucrul la o tură pe care ai terminat-o, dintr-o parte în alta prin mijloc. Restul se calculează singur, la fiecare tură nouă.'};
 }
 /* scara unei părți măsurate: câți cm are o unitate, pe lățime și pe înălțime */
 function gaugeScale(q,g){
@@ -1358,10 +1355,12 @@ function renderSize(p,pt,parsed){
   }
   var h='<div class="size-res">',s=sc.sh,small;
   if(g.corners){
-    h+='<div><b>'+cmTxt(g.m*s)+'</b>latura</div><div><b>'+cmTxt(g.diag*s)+'</b>colț la colț</div>';
+    h+='<div><b>'+cmTxt(g.m*s)+'</b>lățime</div>'+
+       '<div><b>'+cmTxt(g.diag*s)+'</b>colț la colț</div>'+
+       '<div><b>'+cmTxt(g.side*s)+'</b>o latură</div>';
     small=cmTxt(g.m*s);
   }else if(g.round){
-    h+='<div><b>'+cmTxt(g.m*s)+'</b>dintr-o parte în alta</div>';
+    h+='<div><b>'+cmTxt(g.m*s)+'</b>lățime, dintr-o parte în alta</div>';
     small=cmTxt(g.m*s);
   }else{
     h+='<div><b>'+cmTxt(g.m*sc.sw)+'</b>lățime</div><div><b>'+cmTxt(g.h*sc.sh)+'</b>înălțime</div>';
