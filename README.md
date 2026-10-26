@@ -17,7 +17,7 @@ Aplicație web instalabilă (PWA) pentru scris, calculat și bifat rândurile sc
 2. **Crești `VERSION` în [`sw.js`](sw.js)** (ex. `v17.0.0` → `v17.0.1`). Pasul ăsta e obligatoriu —
    fără el telefonul servește versiunea din cache.
 3. `git add -A && git commit -m "..." && git push`
-4. GitHub Pages publică în 1–2 minute.
+4. Workflow-ul [`.github/workflows/pages.yml`](.github/workflows/pages.yml) publică automat; durează 1–2 minute.
 5. La următoarea deschidere a aplicației pe telefon, service worker-ul vede versiunea nouă:
    - dacă nu scrii nimic în acel moment, se actualizează singur și se reîncarcă;
    - dacă ai text nesalvat, apare bara maro „Versiune nouă” și se aplică la apăsare.
