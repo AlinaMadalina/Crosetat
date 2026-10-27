@@ -200,6 +200,8 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
 #sideWork{margin:0 0 10px}
 #sideWork .sp-b{margin-top:6px}
 .sidepick button.fin:not([aria-pressed=true]) b{color:var(--done)}
+.modeldraw{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px 4px}
+.modeldraw svg{width:100%;height:auto;display:block}
 </style>
 </head>
 <body>
@@ -741,7 +743,26 @@ var MODELE=[
        'dc in each st, (dc, ch 2, dc) in each corner']},
      {name:'Vârfurile stelei',shape:'flat',attach:'each',rows:[
        'sc in each st, turn','dec, sc in each st, turn','dec, sc in each st, turn',
-       'dec, sc in each st, turn','dec, sc in each st, turn']}]}
+       'dec, sc in each st, turn','dec, sc in each st, turn']}]},
+  {name:'Cardigan',
+   hint:'Raglan de sus în jos, dintr-o bucată: gât, platcă, corp, apoi mânecile separat. Un schelet, nu o mărime anume — vezi desenul și nota de mai jos.',
+   svg:'<svg viewBox="0 0 340 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Desenul cardiganului: fețele, spatele și mânecile, cu liniile de raglan"><g fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><!-- maneca stanga --><path d="M112 52 L62 64 L34 168 L78 178 L112 92 Z"/><!-- maneca dreapta --><path d="M228 52 L278 64 L306 168 L262 178 L228 92 Z"/><!-- fata stanga: de la umar, pe langa gat, in jos --><path d="M112 52 L148 46 L166 62 L166 222 L112 222 Z"/><!-- fata dreapta --><path d="M228 52 L192 46 L174 62 L174 222 L228 222 Z"/></g><!-- liniile de raglan: de la gat la subrat --><g fill="none" stroke="var(--brown)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"><path d="M148 46 L112 92"/><path d="M192 46 L228 92"/></g><!-- deschizatura din fata --><line x1="170" y1="62" x2="170" y2="222" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 5"/><!-- nasturi --><g fill="var(--brown)"><circle cx="170" cy="86" r="3.5"/><circle cx="170" cy="120" r="3.5"/><circle cx="170" cy="154" r="3.5"/><circle cx="170" cy="188" r="3.5"/></g><g fill="var(--muted)" font-family="inherit" font-size="12" text-anchor="middle"><text x="170" y="38">gât · 44</text><text x="136" y="150">față</text><text x="136" y="166">12</text><text x="204" y="150">față</text><text x="204" y="166">12</text><text x="66" y="128">mânecă</text><text x="66" y="144">19</text><text x="274" y="128">mânecă</text><text x="274" y="144">19</text></g><g fill="var(--brown)" font-family="inherit" font-size="11" text-anchor="middle"><text x="120" y="118">raglan</text><text x="220" y="118">raglan</text></g><g fill="var(--muted)" font-family="inherit" font-size="11" text-anchor="middle"><text x="170" y="242">spatele, 30 de ochiuri, e în spatele celor două fețe</text></g></svg>',
+   note:'Mărimea o dai tu. Gâtul de 44 de ochiuri și cele 6 rânduri de raglan sunt un punct de pornire: măsoară un rând în cardul Mărime și vezi cât îți iese în centimetri, apoi schimbă primul rând și numărul de rânduri. Fiecare rând de raglan adaugă 8 ochiuri: 1 la fiecare față, 2 la fiecare mânecă, 2 la spate. Dacă adaugi rânduri de raglan, schimbă și numerele din rândul de separare, ca să se potrivească.',
+   parts:[
+     {name:'Platcă și corp',shape:'flat',rows:[
+       'ch 44, turn',
+       'dc 5, inc, inc, dc 5, inc, inc, dc 16, inc, inc, dc 5, inc, inc, dc 5, turn',
+       'dc 6, inc, inc, dc 7, inc, inc, dc 18, inc, inc, dc 7, inc, inc, dc 6, turn',
+       'dc 7, inc, inc, dc 9, inc, inc, dc 20, inc, inc, dc 9, inc, inc, dc 7, turn',
+       'dc 8, inc, inc, dc 11, inc, inc, dc 22, inc, inc, dc 11, inc, inc, dc 8, turn',
+       'dc 9, inc, inc, dc 13, inc, inc, dc 24, inc, inc, dc 13, inc, inc, dc 9, turn',
+       'dc 10, inc, inc, dc 15, inc, inc, dc 26, inc, inc, dc 15, inc, inc, dc 10, turn',
+       'dc 12, ch 2, sk 19, dc 30, ch 2, sk 19, dc 12, turn',
+       'dc in each st, turn','dc in each st, turn','dc in each st, turn','dc in each st, turn']},
+     {name:'Mânecă',shape:'circle',rows:[
+       'dc 21','dc in each st','dc in each st','(dc 5, dc2tog) x3',
+       'dc in each st','dc in each st','(dc 4, dc2tog) x3','dc in each st']}]}
+
 ];
 /* ---------- APP ---------- */
 (function(){
@@ -1529,7 +1550,7 @@ function useModel(m){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 $('modelList').innerHTML=MODELE.map(function(m,i){
-  return '<button type="button" data-m="'+i+'"><b>'+esc(m.name)+'</b><span>'+esc(m.hint)+'</span></button>';
+  return '<button type="button" data-m="'+i+'"><b>'+esc(m.name)+'</b><span>'+esc(m.hint)+'</span></button>'+(m.svg?'<div class="modeldraw">'+m.svg+(m.note?'<p class="shapehint">'+esc(m.note)+'</p>':'')+'</div>':'');
 }).join('');
 $('modelList').addEventListener('click',function(e){
   var b=e.target.closest('button[data-m]');if(!b)return;

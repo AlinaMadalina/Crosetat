@@ -50,11 +50,16 @@ după aceea.
 | Hexagon granny | hexagon | 3 ture |
 | Dreptunghi | plat | lanț de 20 și rânduri dus-întors |
 | Stea | pentagon + laturi | vârful scris o dată, lucrat pe fiecare latură |
+| Cardigan | plat + cerc | raglan de sus în jos, cu desenul pieselor |
+
 
 Modelele stau în `MODELE`, lângă restul datelor din `index.html` — ca să adaugi unul,
 scrii un obiect cu `name`, `hint` și `parts` (fiecare cu `shape`, opțional `attach`, și
 `rows`). Rândurile trebuie scrise în sintaxa parserului; toate cele de acum au fost
 verificate să iasă fără erori și cu numărătorile corecte.
+
+Un model poate avea și `svg` — un desen al pieselor, arătat sub buton — și `note`, un
+rând de lămurire sub desen. Cardiganul le folosește pe amândouă.
 
 ## Mărime
 
