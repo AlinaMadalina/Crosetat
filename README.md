@@ -73,6 +73,17 @@ declanșează o re-randare completă, ca să nu-ți sară cursorul din ele cât 
 Punctele de măsură se dau în model, în `dims`: `{k, label, x, y}`, unde `x` și `y` sunt
 procente din lățimea și înălțimea desenului.
 
+Sub desen, dacă ai măsurat un rând în cardul **Mărime**, apare și **Ochiurile tale**:
+numărul de ochiuri din gât și cum se împarte primul rând, câte rânduri de raglan și ce
+adâncime iese, ochiurile de după raglan, corpul și mâneca, plus câte rânduri până la
+lungimile scrise.
+
+Calculul pornește de la o singură relație: raglanul duce toată diferența dintre gât și
+piept, crescând 8 ochiuri pe rând. De aici ies, în ordine inversă, numărul de rânduri de
+raglan și împărțirea primului rând. Când gâtul e mic față de piept, raglanul iese foarte
+adânc și mâneca ar porni de la câteva ochiuri — atunci apare un avertisment, pentru că
+numerele sunt corecte matematic, dar greu de lucrat.
+
 ## Mărime
 
 Cardul **Mărime** de sub schemă. Măsori o singură dată cât e de înalt un rând —

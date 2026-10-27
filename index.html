@@ -208,6 +208,12 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
 .dimfield{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px}
 .dimfield span{font-size:.72rem;color:var(--muted);background:var(--bg);padding:0 4px;border-radius:4px;white-space:nowrap}
 .dimfield input{width:52px;text-align:center;font:inherit;font-size:.85rem;color:var(--ink);background:var(--surface);border:1px solid var(--brown);border-radius:8px;padding:3px 4px}
+.planbox{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.planbox h3{font-family:"Bricolage Grotesque",Georgia,serif;font-weight:600;font-size:1rem;margin:0 0 6px}
+.planbox ul{margin:0;padding-left:18px}
+.planbox li{margin:4px 0;font-size:.92rem}
+.planbox b{color:var(--brown)}
+.wrn-note{color:var(--warn)}
 </style>
 </head>
 <body>
@@ -251,6 +257,7 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
   <summary><h2>M&#259;surile mele</h2><span class="info-sum" id="dimSum"></span></summary>
   <p class="shapehint">Scrie pe desen c&#226;t vrei s&#259; ias&#259;, &#238;n centimetri. Se p&#259;streaz&#259; cu proiectul.</p>
   <div class="dimwrap" id="dimWrap"></div>
+  <div id="dimPlan"></div>
 </details>
 
 <details class="card info" id="infoBox">
@@ -1612,6 +1619,7 @@ function renderDims(p){
        'value="'+esc(p.dims[d.k]||'')+'" aria-label="'+esc(d.label)+' în centimetri"></div>';
   });
   $('dimWrap').innerHTML=h;
+  renderPlan(p);
   renderDimSum(p,m);
 }
 $('dimWrap').addEventListener('input',function(e){
@@ -1620,7 +1628,68 @@ $('dimWrap').addEventListener('input',function(e){
   save();
   /* nu re-randăm tot, ca să nu sară cursorul din căsuță */
   var m=modelOf(p);if(m)renderDimSum(p,m);
+  renderPlan(p);
 });
+/* ---- din măsuri în ochiuri ---- */
+/* Scara vine din cardul Mărime (cât e de înalt un rând), iar măsurile de pe desen sunt
+   în centimetri. Raglanul crește cu 8 ochiuri pe rând: 1 la fiecare față, 2 la fiecare
+   mânecă, 2 la spate. De aici ies, în ordine inversă, câte rânduri de raglan trebuie și
+   cum se împarte primul rând. */
+function planCardigan(p){
+  if(!p.parts||!p.parts.length)return null;
+  var sc=scaleFor(p,p.parts[0],((cache&&cache[0])||{}).parsed||[]);
+  if(!sc||!sc.sw)return {faraProba:true};
+  var d=p.dims||{},sw=sc.sw,rowCm=1.8*sc.sh;          // un rând de stâlpi
+  var gat=num(d.gat),piept=num(d.piept),brat=num(d.brat);
+  if(!gat||!piept||!brat)return {lipsesc:true};
+
+  var N=Math.round(gat/sw);                            // ochiuri în gât, din măsură
+  var B=Math.round(piept/sw);                          // ochiuri în corp, după separare
+  var M=Math.round(brat/sw);                           // ochiuri în mânecă, cu tot cu subraț
+  var b=M-2;                                           // mâneca fără cele 2 de la subraț
+  var corp=B-2;                                        // corpul fără cele 2 lanțuri
+  var c=Math.round(corp/2), a=Math.round((corp-c)/2);  // spatele cât două fețe
+  c=corp-2*a;
+  if(a<2||c<2||b<2)return {preaMic:true};
+
+  var R=Math.round((2*a+2*b+c-N)/8);                   // câte rânduri de raglan
+  if(R<1)R=1;
+  while(R>1&&(a-R<2||b-2*R<2||c-2*R<2))R--;            // primul rând trebuie să rămână lucrabil
+  var a0=a-R,b0=b-2*R,c0=c-2*R;
+  if(a0<2||b0<2||c0<2)return {preaMic:true};
+
+  var plan={N:2*a0+2*b0+c0,R:R,a0:a0,b0:b0,c0:c0,a:a,b:b,c:c,corp:B,maneca:M,
+            raglanCm:R*rowCm};
+  var lung=num(d.lungime),man=num(d.maneca),mans=num(d.mansete);
+  /* raglanul duce toată diferența dintre gât și piept; dacă gâtul e mic față de piept,
+     iese un raglan foarte adânc și o mânecă ce pornește de la câteva ochiuri */
+  if(b0<4||(lung&&plan.raglanCm>0.45*lung))plan.adanc=true;
+  if(lung)plan.randuriCorp=Math.max(0,Math.round(lung/rowCm)-R);
+  if(man)plan.tureManeca=Math.max(1,Math.round(man/rowCm));
+  if(mans)plan.mansete=Math.max(2,Math.round(mans/sw));
+  return plan;
+}
+function renderPlan(p){
+  var box=$('dimPlan');if(!box)return;
+  var m=modelOf(p);
+  if(!m||m.name!=='Cardigan'){box.innerHTML='';return;}
+  var pl=planCardigan(p);
+  if(!pl){box.innerHTML='';return;}
+  if(pl.faraProba){box.innerHTML='<p class="size-note">Măsoară întâi cât e de înalt un rând, în cardul <b>Mărime</b>, și apoi calculez ochiurile de aici.</p>';return;}
+  if(pl.lipsesc){box.innerHTML='<p class="size-note">Scrie gâtul, pieptul și brațul ca să calculez ochiurile. Lungimea, mâneca și manșeta îmi dau și numărul de rânduri.</p>';return;}
+  if(pl.preaMic){box.innerHTML='<p class="size-note">Măsurile astea nu se leagă între ele: iese prea puțin de lucru. Verifică proba de rând și cifrele de pe desen.</p>';return;}
+  var h='<div class="planbox"><h3>Ochiurile tale</h3><ul>';
+  h+='<li>Gâtul: lanț de <b>'+pl.N+'</b> ochiuri, împărțit <b>'+pl.a0+' · '+pl.b0+' · '+pl.c0+' · '+pl.b0+' · '+pl.a0+'</b> (față, mânecă, spate, mânecă, față)</li>';
+  h+='<li>Raglan: <b>'+pl.R+'</b> '+(pl.R===1?'rând':'rânduri')+', câte 2 creșteri la fiecare îmbinare, adică '+cmTxt(pl.raglanCm)+' adâncime</li>';
+  h+='<li>După raglan: față <b>'+pl.a+'</b>, mânecă <b>'+pl.b+'</b>, spate <b>'+pl.c+'</b></li>';
+  h+='<li>Corpul, după separare: <b>'+pl.corp+'</b> ochiuri'+(pl.randuriCorp!=null?', încă <b>'+pl.randuriCorp+'</b> '+(pl.randuriCorp===1?'rând':'rânduri'):'')+'</li>';
+  h+='<li>Mâneca: <b>'+pl.maneca+'</b> ochiuri'+(pl.tureManeca?', <b>'+pl.tureManeca+'</b> ture':'')+
+     (pl.mansete?', scazi până la <b>'+pl.mansete+'</b> la manșetă':'')+'</li>';
+  h+='</ul>';
+  if(pl.adanc)h+='<p class="size-note wrn-note">Raglanul iese adânc, iar mâneca pornește de la doar '+pl.b0+' ochiuri: gâtul e mic față de piept, și toată diferența o duce raglanul. Dacă nu vrei o platcă atât de lungă, pornește cu un gât mai larg sau lucrează platca cu ochiuri mai scunde.</p>';
+  h+='<p class="size-note">Numerele vin din măsurile de pe desen și din proba ta de rând, socotite cu stâlpi. Modelul din listă rămâne cum e — astea sunt cifrele pentru mărimea ta.</p></div>';
+  box.innerHTML=h;
+}
 render();renderBkHere();
 })();
 </script>
