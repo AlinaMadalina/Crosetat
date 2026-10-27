@@ -73,6 +73,10 @@ declanșează o re-randare completă, ca să nu-ți sară cursorul din ele cât 
 Punctele de măsură se dau în model, în `dims`: `{k, label, x, y}`, unde `x` și `y` sunt
 procente din lățimea și înălțimea desenului.
 
+Cardul stă imediat sub proiect, înaintea listei de modele, și e **deschis din start** la
+proiectele care au desen — ca să nu-l cauți. Dacă îl închizi, rămâne închis (`st.dimOpen`).
+Când treci pe un proiect cu tipar din selectorul de proiecte, pagina sare la desen.
+
 Sub desen, dacă ai măsurat un rând în cardul **Mărime**, apare și **Ochiurile tale**:
 numărul de ochiuri din gât și cum se împarte primul rând, câte rânduri de raglan și ce
 adâncime iese, ochiurile de după raglan, corpul și mâneca, plus câte rânduri până la

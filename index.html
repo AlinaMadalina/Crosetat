@@ -247,17 +247,17 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
   </details>
 </section>
 
-<details class="card help" id="modelBox">
-  <summary>Modele gata f&#259;cute</summary>
-  <p class="shapehint">Alege un model &#537;i se adaug&#259; ca proiect nou, cu r&#226;ndurile scrise. Le po&#539;i schimba dup&#259; aceea, iar proiectele de acum r&#259;m&#226;n neatinse.</p>
-  <div class="choices" id="modelList"></div>
-</details>
-
 <details class="card info" id="dimBox" hidden>
   <summary><h2>M&#259;surile mele</h2><span class="info-sum" id="dimSum"></span></summary>
   <p class="shapehint">Scrie pe desen c&#226;t vrei s&#259; ias&#259;, &#238;n centimetri. Se p&#259;streaz&#259; cu proiectul.</p>
   <div class="dimwrap" id="dimWrap"></div>
   <div id="dimPlan"></div>
+</details>
+
+<details class="card help" id="modelBox">
+  <summary>Modele gata f&#259;cute</summary>
+  <p class="shapehint">Alege un model &#537;i se adaug&#259; ca proiect nou, cu r&#226;ndurile scrise. Le po&#539;i schimba dup&#259; aceea, iar proiectele de acum r&#259;m&#226;n neatinse.</p>
+  <div class="choices" id="modelList"></div>
 </details>
 
 <details class="card info" id="infoBox">
@@ -1385,7 +1385,9 @@ $('bkLoad').addEventListener('click',function(){
     $('bkMsg').textContent='Încărcat ✓ '+stSummary(st)+(d&&d.at?', copiat '+hhmm(d.at):'')+'.';
   },{ok:'Înlocuiește'});
 });
-$('projSel').addEventListener('change',function(e){st.cur=e.target.value;asking=false;resetForm();save();render();});
+$('projSel').addEventListener('change',function(e){st.cur=e.target.value;asking=false;resetForm();save();render();
+  /* proiectele cu tipar: desenul vine singur in fata, ca sa nu-l cauti */
+  var dz=$('dimBox');if(dz&&!dz.hidden&&dz.open)dz.scrollIntoView({block:'start'});});
 $('projNew').addEventListener('click',function(){ask('Numele proiectului nou:',function(n){if(n==null)return;var q=newProject(String(n).trim()||'Proiect nou','flat');st.projects.push(q);st.cur=q.id;asking=false;resetForm();save();render();},{input:'Proiect nou',ok:'Creează'});});
 $('projRen').addEventListener('click',function(){var p=proj();ask('Nume nou:',function(n){if(txtOk(n)){p.name=n.trim();save();render();}},{input:p.name,ok:'Salvează'});});
 $('projDel').addEventListener('click',function(){var p=proj();if(st.projects.length<2)return;ask('Ștergi proiectul „'+p.name+'” cu toate părțile lui?',function(v){if(v!==true)return;st.projects=st.projects.filter(function(q){return q.id!==p.id;});st.cur=st.projects[0].id;asking=false;resetForm();save();render();},{ok:'Șterge'});});
@@ -1610,6 +1612,8 @@ function renderDims(p){
   var m=modelOf(p),box=$('dimBox');
   if(!m||!m.svg||!m.dims){box.hidden=true;$('dimWrap').innerHTML='';return;}
   box.hidden=false;
+  if(st.dimOpen===undefined)st.dimOpen=true;
+  box.open=!!st.dimOpen;
   p.dims=p.dims||{};
   var h=m.svg;
   m.dims.forEach(function(d){
@@ -1622,6 +1626,9 @@ function renderDims(p){
   renderPlan(p);
   renderDimSum(p,m);
 }
+$('dimBox').addEventListener('toggle',function(){
+  if(st.dimOpen!==$('dimBox').open){st.dimOpen=$('dimBox').open;save();}
+});
 $('dimWrap').addEventListener('input',function(e){
   var k=e.target.dataset.dim;if(!k)return;
   var p=proj();p.dims=p.dims||{};p.dims[k]=e.target.value.trim();
