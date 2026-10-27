@@ -397,7 +397,7 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
   <textarea id="bk" spellcheck="false" placeholder="Aici apare backup-ul sau îl lipești tu"></textarea>
   <p class="bk-prev" id="bkPrev" hidden></p>
   <p class="shapehint" id="bkMsg"></p>
-  <p class="shapehint">Versiunea aplicației: <b>v16</b> (8 oct 2026). Copia locală și linkul trebuie să aibă aceeași versiune, altfel ce e nou nu apare.</p>
+  <p class="shapehint">Versiunea aplica&#539;iei: <b id="appVer">se verific&#259;&#8230;</b> &#183; pe ambele aparate trebuie s&#259; fie aceea&#537;i, altfel ce e nou nu apare.</p>
 </details>
 </main>
 <button type="button" class="updbar" id="upd" hidden>Versiune nou&#259; &#8212; apas&#259; ca s&#259; o folose&#537;ti</button>
@@ -1743,6 +1743,31 @@ function renderPlan(p){
   h+='<p class="size-note">Numerele vin din măsurile de pe desen și din proba ta de rând, socotite cu stâlpi. Modelul din listă rămâne cum e — astea sunt cifrele pentru mărimea ta.</p></div>';
   box.innerHTML=h;
 }
+/* ---- ce versiune ai ---- */
+/* Versiunea adevărată e cea din service worker, nu un text scris în pagină care rămâne
+   în urmă. O cerem de la el; dacă nu răspunde (prima deschidere, sau fără service
+   worker), o citim direct din sw.js, ocolind cache-ul. */
+function arataVersiunea(v){
+  var el=$('appVer');if(el)el.textContent=v;
+}
+(function(){
+  var gata=false;
+  function pune(v){if(!gata){gata=true;arataVersiunea(v);}}
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.addEventListener('message',function(e){
+      if(e.data&&e.data.type==='version')pune(e.data.version);
+    });
+    if(navigator.serviceWorker.controller)
+      navigator.serviceWorker.controller.postMessage('version');
+  }
+  setTimeout(function(){
+    if(gata)return;
+    fetch('sw.js?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){
+      var m=t.match(/VERSION\s*=\s*'([^']+)'/);
+      pune(m?m[1]:'necunoscută');
+    }).catch(function(){pune('necunoscută');});
+  },1200);
+})();
 render();renderBkHere();
 })();
 </script>
