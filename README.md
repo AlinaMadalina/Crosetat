@@ -36,6 +36,26 @@ prin design, iar datele sunt protejate de reguli și de parola contului.
 
 Dacă `window.CROSET_FIREBASE` e `null`, aplicația merge strict local, ca înainte.
 
+## Modele gata făcute
+
+Cardul **Modele gata făcute**, sub bara de proiecte. Alegi unul și se adaugă ca proiect
+nou, cu rândurile deja scrise; proiectele de acum rămân neatinse și poți modifica orice
+după aceea.
+
+| Model | Formă | Ce iese |
+|---|---|---|
+| Cerc plat | cerc | 6 ture, 6 → 36 ochiuri |
+| Bilă mică | cerc | 9 ture, crește și se închide la loc |
+| Pătrat granny | pătrat | 4 ture, colțuri din lanțuri |
+| Hexagon granny | hexagon | 3 ture |
+| Dreptunghi | plat | lanț de 20 și rânduri dus-întors |
+| Stea | pentagon + laturi | vârful scris o dată, lucrat pe fiecare latură |
+
+Modelele stau în `MODELE`, lângă restul datelor din `index.html` — ca să adaugi unul,
+scrii un obiect cu `name`, `hint` și `parts` (fiecare cu `shape`, opțional `attach`, și
+`rows`). Rândurile trebuie scrise în sintaxa parserului; toate cele de acum au fost
+verificate să iasă fără erori și cu numărătorile corecte.
+
 ## Mărime
 
 Cardul **Mărime** de sub schemă. Măsori o singură dată cât e de înalt un rând —

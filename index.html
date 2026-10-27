@@ -233,6 +233,12 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
   </details>
 </section>
 
+<details class="card help" id="modelBox">
+  <summary>Modele gata f&#259;cute</summary>
+  <p class="shapehint">Alege un model &#537;i se adaug&#259; ca proiect nou, cu r&#226;ndurile scrise. Le po&#539;i schimba dup&#259; aceea, iar proiectele de acum r&#259;m&#226;n neatinse.</p>
+  <div class="choices" id="modelList"></div>
+</details>
+
 <details class="card info" id="infoBox">
   <summary><h2>Detalii proiect</h2><span class="info-sum" id="infoSum"></span></summary>
   <div class="info-grid">
@@ -693,6 +699,50 @@ function sidesOf(pt,n){
   if(pt.attach==='one')return [0];
   return (pt.sides||[]).filter(function(k){return k<n;}).sort(function(a,b){return a-b;});
 }
+/* Modele gata făcute. Fiecare devine un proiect nou, cu rândurile scrise.
+   Toate sunt scrise în sintaxa pe care o înțelege parserul de mai sus și au fost
+   verificate să iasă fără erori și cu numărătorile corecte. */
+var MODELE=[
+  {name:'Cerc plat',
+   hint:'Crește cu 6 ochiuri pe tură și stă plat. Suport de pahar, fundul unui coșuleț.',
+   parts:[{name:'Cerc',shape:'circle',rows:[
+     'mr, 6 sc','(inc) x6','(sc, inc) x6','(2 sc, inc) x6','(3 sc, inc) x6','(4 sc, inc) x6']}]},
+
+  {name:'Bilă mică',
+   hint:'Crește, merge drept, apoi se închide la loc. Mărgele, ochi, nasuri.',
+   parts:[{name:'Bilă',shape:'circle',rows:[
+     'mr, 6 sc','(inc) x6','(sc, inc) x6','(2 sc, inc) x6',
+     'sc in each st','sc in each st',
+     '(2 sc, dec) x6','(sc, dec) x6','(dec) x6']}]},
+
+  {name:'Pătrat granny',
+   hint:'Pătrățelul clasic, cu colțuri din lanțuri. Se coase în pled.',
+   parts:[{name:'Pătrat',shape:'sq',rows:[
+     'ch 4','(3 dc, ch 2) x4',
+     'dc in each st, (dc, ch 2, dc) in each corner',
+     'dc in each st, (dc, ch 2, dc) in each corner']}]},
+
+  {name:'Hexagon granny',
+   hint:'Ca pătratul, dar cu șase colțuri. Fagure pentru pături.',
+   parts:[{name:'Hexagon',shape:'hex',rows:[
+     'ch 6','(3 dc, ch 2) x6',
+     'dc in each st, (dc, ch 2, dc) in each corner']}]},
+
+  {name:'Dreptunghi',
+   hint:'Rânduri dus-întors. Fular, pătură, cârpă de bucătărie. Lungimea o dai din primul rând.',
+   parts:[{name:'Dreptunghi',shape:'flat',rows:[
+     'ch 20','sc in each st, turn','sc in each st, turn','sc in each st, turn']}]},
+
+  {name:'Stea',
+   hint:'Pentagon cu cinci vârfuri. Vârful se scrie o dată și se lucrează pe fiecare latură.',
+   parts:[
+     {name:'Pentagon',shape:'pent',rows:[
+       'ch 5','(3 dc, ch 2) x5',
+       'dc in each st, (dc, ch 2, dc) in each corner']},
+     {name:'Vârfurile stelei',shape:'flat',attach:'each',rows:[
+       'sc in each st, turn','dec, sc in each st, turn','dec, sc in each st, turn',
+       'dec, sc in each st, turn','dec, sc in each st, turn']}]}
+];
 /* ---------- APP ---------- */
 (function(){
 var KEY='croset-schema-v1';
@@ -1462,6 +1512,30 @@ $('sideWork').addEventListener('click',function(e){
   var p=proj(),pt=part(p);
   pt.cur=+b.dataset.ws;picked=-1;editing=-1;$('txt').value='';
   save();render();
+});
+/* ---- modele gata făcute ---- */
+function useModel(m){
+  var p={id:uid(),name:m.name,parts:[],curPart:null,finished:false};
+  m.parts.forEach(function(d){
+    var pt=newPart(d.name,d.shape,d.attach||null);
+    pt.rows=d.rows.map(function(t){return {id:uid(),text:t,done:false};});
+    p.parts.push(pt);
+  });
+  p.curPart=p.parts[0].id;
+  st.projects.push(p);st.cur=p.id;
+  asking=false;resetForm();
+  $('modelBox').open=false;
+  save();render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$('modelList').innerHTML=MODELE.map(function(m,i){
+  return '<button type="button" data-m="'+i+'"><b>'+esc(m.name)+'</b><span>'+esc(m.hint)+'</span></button>';
+}).join('');
+$('modelList').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-m]');if(!b)return;
+  var m=MODELE[+b.dataset.m];
+  ask('Adaugi „'+m.name+'” ca proiect nou? Proiectele de acum rămân neatinse.',
+    function(v){if(v===true)useModel(m);},{ok:'Adaugă'});
 });
 render();renderBkHere();
 })();
