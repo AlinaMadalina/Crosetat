@@ -205,10 +205,14 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
 .dimwrap{position:relative;margin-top:12px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .dimwrap svg{width:100%;height:auto;display:block}
 .dimwrap svg text{display:none}
-.dimfield{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px}
-.dimfield span{font-size:.72rem;color:var(--muted);background:var(--bg);padding:0 4px;border-radius:4px;white-space:nowrap}
-.dimfield input{width:46px;text-align:center;font:inherit;font-size:.85rem;color:var(--ink);background:var(--surface);border:1px solid var(--brown);border-radius:8px;padding:3px 4px}
-@media (max-width:420px){.dimfield input{width:42px;font-size:.8rem;padding:2px 3px}.dimfield span{font-size:.66rem}}
+.dimtag{position:absolute;transform:translate(-50%,-50%);font-size:.72rem;color:var(--muted);background:var(--bg);padding:0 5px;border-radius:5px;white-space:nowrap}
+.dimtab{width:100%;border-collapse:collapse;margin-top:12px;font-size:.92rem}
+.dimtab th,.dimtab td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line)}
+.dimtab thead th{font-size:.8rem;font-weight:400;color:var(--muted);border-bottom-color:var(--line)}
+.dimtab tbody th{font-weight:400}
+.dimtab td:nth-child(2){width:84px}
+.dimtab input{width:100%;font:inherit;font-size:.9rem;text-align:center;color:var(--ink);background:var(--bg);border:1px solid var(--brown);border-radius:8px;padding:5px 4px}
+.dimres{color:var(--brown);font-weight:700;white-space:nowrap}
 .planbox{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
 .planbox h3{font-family:"Bricolage Grotesque",Georgia,serif;font-weight:600;font-size:1rem;margin:0 0 6px}
 .planbox ul{margin:0;padding-left:18px}
@@ -250,8 +254,12 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
 
 <details class="card info" id="dimBox" hidden>
   <summary><h2>M&#259;surile mele</h2><span class="info-sum" id="dimSum"></span></summary>
-  <p class="shapehint">Scrie pe desen c&#226;t vrei s&#259; ias&#259;, &#238;n centimetri. Se p&#259;streaz&#259; cu proiectul.</p>
+  <p class="shapehint" id="dimHint"></p>
   <div class="dimwrap" id="dimWrap"></div>
+  <table class="dimtab" id="dimTab">
+    <thead><tr><th>M&#259;sur&#259;</th><th>c&#226;&#539;i cm</th><th>&#206;&#539;i trebuie</th></tr></thead>
+    <tbody id="dimRows"></tbody>
+  </table>
   <div id="dimPlan"></div>
 </details>
 
@@ -777,15 +785,15 @@ var MODELE=[
    note:'Mărimea o dai tu. Gâtul de 44 de ochiuri și cele 6 rânduri de raglan sunt un punct de pornire: măsoară un rând în cardul Mărime și vezi cât îți iese în centimetri, apoi schimbă primul rând și numărul de rânduri. Fiecare rând de raglan adaugă 8 ochiuri: 1 la fiecare față, 2 la fiecare mânecă, 2 la spate. Dacă adaugi rânduri de raglan, schimbă și numerele din rândul de separare, ca să se potrivească.',
    dims:[
      {k:'gat',label:'Gât',x:50,y:9},
-     {k:'raglan',label:'Raglan',x:30,y:26},
+     {k:'raglan',label:'Raglan',u:'l',x:30,y:26},
      {k:'brat',label:'Braț sus',x:81,y:26},
      {k:'piept',label:'Piept',x:50,y:36},
-     {k:'maneca',label:'Mânecă',x:13,y:50},
+     {k:'maneca',label:'Mânecă',u:'l',r:'ture',x:13,y:50},
      {k:'fata',label:'Față',x:35,y:62},
      {k:'spate',label:'Spate',x:65,y:62},
      {k:'mansete',label:'Manșetă',x:11,y:76},
      {k:'tiv',label:'Tiv',x:62,y:86},
-     {k:'lungime',label:'Lungime',x:38,y:86}],
+     {k:'lungime',label:'Lungime',u:'l',x:38,y:86}],
    parts:[
      {name:'Platcă și corp',shape:'flat',rows:[
        'ch 44, turn',
@@ -1605,48 +1613,74 @@ function modelOf(p){
   for(var i=0;i<MODELE.length;i++)if(MODELE[i].name===p.model)return MODELE[i];
   return null;
 }
+/* Scara: câți cm are un ochi pe lățime și cât are un rând de stâlpi pe înălțime.
+   Vine din cardul Mărime; fără ea nu se poate socoti nimic în ochiuri. */
+function dimScale(p){
+  if(!p.parts||!p.parts.length)return null;
+  var sc=scaleFor(p,p.parts[0],((cache&&cache[0])||{}).parsed||[]);
+  if(!sc||!sc.sw)return null;
+  return {sw:sc.sw,rowCm:1.8*sc.sh};
+}
+/* Ce iese dintr-o măsură: lățimile se împart la lățimea unui ochi, lungimile la
+   înălțimea unui rând. */
+function dimResult(d,cm,s){
+  if(!s||!cm)return null;
+  if(d.u==='l')return {n:Math.max(1,Math.round(cm/s.rowCm)),w:d.r||'rânduri'};
+  return {n:Math.max(1,Math.round(cm/s.sw)),w:'ochiuri'};
+}
+function dimResText(d,cm,s){
+  var r=dimResult(d,cm,s);
+  return r?r.n+' '+r.w:'—';
+}
 function dimsFilled(p,m){
   var n=0;(m.dims||[]).forEach(function(d){if(((p.dims||{})[d.k]||'').trim())n++;});
   return n;
 }
 function renderDimSum(p,m){
   var n=dimsFilled(p,m);
-  $('dimSum').textContent=n?n+' din '+m.dims.length+' completate':'scrie pe desen';
+  $('dimSum').textContent=n?n+' din '+m.dims.length+' completate':'scrie măsurile';
 }
 function renderDims(p){
   var m=modelOf(p),box=$('dimBox');
-  if(!m||!m.svg||!m.dims){box.hidden=true;$('dimWrap').innerHTML='';return;}
+  if(!m||!m.svg||!m.dims){box.hidden=true;$('dimWrap').innerHTML='';$('dimRows').innerHTML='';return;}
   box.hidden=false;
   if(st.dimOpen===undefined)st.dimOpen=true;
   box.open=!!st.dimOpen;
   p.dims=p.dims||{};
+  /* desenul rămâne reper: doar numele măsurilor, ca să știi unde se ia fiecare */
   var h=m.svg;
   m.dims.forEach(function(d){
-    h+='<div class="dimfield" style="left:'+d.x+'%;top:'+d.y+'%">'+
-       '<span>'+esc(d.label)+'</span>'+
-       '<input type="text" inputmode="decimal" data-dim="'+d.k+'" placeholder="cm" '+
-       'value="'+esc(p.dims[d.k]||'')+'" aria-label="'+esc(d.label)+' în centimetri"></div>';
+    h+='<div class="dimtag" style="left:'+d.x+'%;top:'+d.y+'%">'+esc(d.label)+'</div>';
   });
   $('dimWrap').innerHTML=h;
-  renderPlan(p);
+  var s=dimScale(p);
+  $('dimRows').innerHTML=m.dims.map(function(d){
+    var v=p.dims[d.k]||'';
+    return '<tr><th scope="row">'+esc(d.label)+'</th>'+
+      '<td><input type="text" inputmode="decimal" data-dim="'+d.k+'" value="'+esc(v)+'" placeholder="cm" aria-label="'+esc(d.label)+' în centimetri"></td>'+
+      '<td class="dimres">'+dimResText(d,num(v),s)+'</td></tr>';
+  }).join('');
+  $('dimHint').textContent=s
+    ?'Scrie centimetrii și îți spun câte ochiuri sau câte rânduri ies, după proba ta de rând.'
+    :'Măsoară întâi cât e de înalt un rând, în cardul Mărime, și apoi îți calculez ochiurile și rândurile.';
   renderDimSum(p,m);
+  renderPlan(p);
 }
 $('dimBox').addEventListener('toggle',function(){
   if(st.dimOpen!==$('dimBox').open){st.dimOpen=$('dimBox').open;save();}
 });
-$('dimWrap').addEventListener('input',function(e){
+$('dimTab').addEventListener('input',function(e){
   var k=e.target.dataset.dim;if(!k)return;
-  var p=proj();p.dims=p.dims||{};p.dims[k]=e.target.value.trim();
+  var p=proj(),m=modelOf(p);if(!m)return;
+  p.dims=p.dims||{};p.dims[k]=e.target.value.trim();
   save();
-  /* nu re-randăm tot, ca să nu sară cursorul din căsuță */
-  var m=modelOf(p);if(m)renderDimSum(p,m);
+  /* actualizez doar celula din dreapta, ca să nu sară cursorul din căsuță */
+  var d=null;m.dims.forEach(function(x){if(x.k===k)d=x;});
+  var cell=e.target.closest('tr').querySelector('.dimres');
+  if(d&&cell)cell.textContent=dimResText(d,num(e.target.value),dimScale(p));
+  renderDimSum(p,m);
   renderPlan(p);
 });
-/* ---- din măsuri în ochiuri ---- */
-/* Scara vine din cardul Mărime (cât e de înalt un rând), iar măsurile de pe desen sunt
-   în centimetri. Raglanul crește cu 8 ochiuri pe rând: 1 la fiecare față, 2 la fiecare
-   mânecă, 2 la spate. De aici ies, în ordine inversă, câte rânduri de raglan trebuie și
-   cum se împarte primul rând. */
 function planCardigan(p){
   if(!p.parts||!p.parts.length)return null;
   var sc=scaleFor(p,p.parts[0],((cache&&cache[0])||{}).parsed||[]);

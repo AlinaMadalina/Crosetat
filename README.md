@@ -63,35 +63,35 @@ rând de lămurire sub desen, iar o parte poate avea `notes`, care ajunge în �
 
 ### Măsurile mele
 
-Cardul **Măsurile mele** apare la proiectele făcute dintr-un model care are desen. Arată
-același desen, dar fără etichetele cu numărul de ochiuri (ascunse din CSS), și pune peste
-el zece căsuțe de scris, așezate procentual: gât, raglan, braț sus, piept, mânecă, față,
-spate, manșetă, tiv și lungime.
+Cardul apare la proiectele făcute dintr-un model care are desen. Desenul rămâne reper —
+pe el sunt doar numele măsurilor, ca să vezi de unde se ia fiecare — iar sub el e un
+**tabel editabil**: scrii centimetrii, iar coloana din dreapta îți spune ce iese.
 
-Ce scrii se ține pe proiect, în `p.dims`, deci merge și prin sincronizare. Căsuțele nu
-declanșează o re-randare completă, ca să nu-ți sară cursorul din ele cât scrii.
+| Măsură | câți cm | Îți trebuie |
+|---|---|---|
+| Gât | 56 | 84 ochiuri |
+| Raglan | 24 | 20 rânduri |
+| Mânecă | 45 | 38 ture |
 
-Punctele de măsură se dau în model, în `dims`: `{k, label, x, y}`, unde `x` și `y` sunt
-procente din lățimea și înălțimea desenului.
+Lățimile se împart la lățimea unui ochi, lungimile la înălțimea unui rând de stâlpi;
+mâneca se numără în ture, fiind lucrată în rotund. Scara vine din cardul **Mărime**;
+fără ea coloana din dreapta arată `—`.
 
-Cardul stă imediat sub proiect, înaintea listei de modele, și e **deschis din start** la
-proiectele care au desen — ca să nu-l cauți. Dacă îl închizi, rămâne închis (`st.dimOpen`).
-Când treci pe un proiect cu tipar din selectorul de proiecte, pagina sare la desen.
+Ce scrii se ține pe proiect, în `p.dims`, deci merge și prin sincronizare. La fiecare
+tastă se actualizează doar celula din dreapta, nu tot cardul, ca să nu-ți sară cursorul.
 
-Sub desen, dacă ai măsurat un rând în cardul **Mărime**, apare și **Ochiurile tale**:
-numărul de ochiuri din gât și cum se împarte primul rând, câte rânduri de raglan și ce
-adâncime iese, ochiurile de după raglan, corpul și mâneca, plus câte rânduri până la
-lungimile scrise.
+Punctele se dau în model, în `dims`: `{k, label, x, y}` cu `x`/`y` ca procente din desen,
+plus `u:'l'` pentru măsurile de lungime și `r` pentru cuvântul folosit (`ture` la mânecă).
 
-Calculul pornește de la o singură relație: raglanul duce toată diferența dintre gât și
-piept, crescând 8 ochiuri pe rând. De aici ies, în ordine inversă, numărul de rânduri de
-raglan și împărțirea primului rând. Când gâtul e mic față de piept, raglanul iese foarte
-adânc și mâneca ar porni de la câteva ochiuri — atunci apare un avertisment, pentru că
-numerele sunt corecte matematic, dar greu de lucrat.
-
-Dacă scrii **față** și **spate**, împărțirea corpului merge după ele în loc de regula
-implicită (spatele cât două fețe). Dacă scrii **raglan** și iese altceva din gât și
-piept, ți-o spune — numerele rămân după gât și piept, ca să existe o singură sursă.
+Sub tabel rămâne **Ochiurile tale**: planul de ansamblu — lanțul de pornire și cum se
+împarte, câte rânduri de raglan și ce adâncime iese, corpul și mâneca. Pornește de la o
+singură relație: raglanul duce toată diferența dintre gât și piept, crescând 8 ochiuri pe
+rând. Dacă scrii **față** și **spate**, împărțirea corpului merge după raportul lor, nu
+după regula implicită în care spatele e cât două fețe. Dacă scrii **raglan** și iese
+altceva din gât și piept, ți-o spune, dar numerele rămân după gât și piept, ca să existe o
+singură sursă. Când gâtul e mic față de piept, raglanul iese foarte adânc și mâneca ar
+porni de la câteva ochiuri — atunci apare un avertisment, pentru că numerele sunt corecte
+matematic, dar greu de lucrat.
 
 ## Mărime
 
