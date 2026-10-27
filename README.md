@@ -61,6 +61,18 @@ verificate să iasă fără erori și cu numărătorile corecte.
 Un model poate avea și `svg` — un desen al pieselor, arătat sub buton —, `note`, un
 rând de lămurire sub desen, iar o parte poate avea `notes`, care ajunge în „Detalii parte”.
 
+### Măsurile mele
+
+Cardul **Măsurile mele** apare la proiectele făcute dintr-un model care are desen. Arată
+același desen, dar fără etichetele cu numărul de ochiuri (ascunse din CSS), și pune peste
+el căsuțe de scris, așezate procentual: gât, braț sus, piept, mânecă, manșetă, lungime.
+
+Ce scrii se ține pe proiect, în `p.dims`, deci merge și prin sincronizare. Căsuțele nu
+declanșează o re-randare completă, ca să nu-ți sară cursorul din ele cât scrii.
+
+Punctele de măsură se dau în model, în `dims`: `{k, label, x, y}`, unde `x` și `y` sunt
+procente din lățimea și înălțimea desenului.
+
 ## Mărime
 
 Cardul **Mărime** de sub schemă. Măsori o singură dată cât e de înalt un rând —
