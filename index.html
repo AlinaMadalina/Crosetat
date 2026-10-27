@@ -207,7 +207,8 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
 .dimwrap svg text{display:none}
 .dimfield{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px}
 .dimfield span{font-size:.72rem;color:var(--muted);background:var(--bg);padding:0 4px;border-radius:4px;white-space:nowrap}
-.dimfield input{width:52px;text-align:center;font:inherit;font-size:.85rem;color:var(--ink);background:var(--surface);border:1px solid var(--brown);border-radius:8px;padding:3px 4px}
+.dimfield input{width:46px;text-align:center;font:inherit;font-size:.85rem;color:var(--ink);background:var(--surface);border:1px solid var(--brown);border-radius:8px;padding:3px 4px}
+@media (max-width:420px){.dimfield input{width:42px;font-size:.8rem;padding:2px 3px}.dimfield span{font-size:.66rem}}
 .planbox{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
 .planbox h3{font-family:"Bricolage Grotesque",Georgia,serif;font-weight:600;font-size:1rem;margin:0 0 6px}
 .planbox ul{margin:0;padding-left:18px}
@@ -775,12 +776,16 @@ var MODELE=[
    svg:'<svg viewBox="0 0 340 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Desenul cardiganului: fețele, spatele și mânecile, cu liniile de raglan"><g fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><!-- maneca stanga --><path d="M112 52 L62 64 L34 168 L78 178 L112 92 Z"/><!-- maneca dreapta --><path d="M228 52 L278 64 L306 168 L262 178 L228 92 Z"/><!-- fata stanga: de la umar, pe langa gat, in jos --><path d="M112 52 L148 46 L166 62 L166 222 L112 222 Z"/><!-- fata dreapta --><path d="M228 52 L192 46 L174 62 L174 222 L228 222 Z"/></g><!-- liniile de raglan: de la gat la subrat --><g fill="none" stroke="var(--brown)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"><path d="M148 46 L112 92"/><path d="M192 46 L228 92"/></g><!-- deschizatura din fata --><line x1="170" y1="62" x2="170" y2="222" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 5"/><!-- nasturi --><g fill="var(--brown)"><circle cx="170" cy="86" r="3.5"/><circle cx="170" cy="120" r="3.5"/><circle cx="170" cy="154" r="3.5"/><circle cx="170" cy="188" r="3.5"/></g><g fill="var(--muted)" font-family="inherit" font-size="12" text-anchor="middle"><text x="170" y="38">gât · 44</text><text x="136" y="150">față</text><text x="136" y="166">12</text><text x="204" y="150">față</text><text x="204" y="166">12</text><text x="66" y="128">mânecă</text><text x="66" y="144">19</text><text x="274" y="128">mânecă</text><text x="274" y="144">19</text></g><g fill="var(--brown)" font-family="inherit" font-size="11" text-anchor="middle"><text x="120" y="118">raglan</text><text x="220" y="118">raglan</text></g><g fill="var(--muted)" font-family="inherit" font-size="11" text-anchor="middle"><text x="170" y="242">spatele, 30 de ochiuri, e în spatele celor două fețe</text></g></svg>',
    note:'Mărimea o dai tu. Gâtul de 44 de ochiuri și cele 6 rânduri de raglan sunt un punct de pornire: măsoară un rând în cardul Mărime și vezi cât îți iese în centimetri, apoi schimbă primul rând și numărul de rânduri. Fiecare rând de raglan adaugă 8 ochiuri: 1 la fiecare față, 2 la fiecare mânecă, 2 la spate. Dacă adaugi rânduri de raglan, schimbă și numerele din rândul de separare, ca să se potrivească.',
    dims:[
-     {k:'gat',label:'Gât',x:50,y:11},
-     {k:'brat',label:'Braț sus',x:78,y:28},
-     {k:'piept',label:'Piept',x:50,y:46},
-     {k:'maneca',label:'Mânecă',x:15,y:48},
-     {k:'mansete',label:'Manșetă',x:13,y:73},
-     {k:'lungime',label:'Lungime',x:50,y:82}],
+     {k:'gat',label:'Gât',x:50,y:9},
+     {k:'raglan',label:'Raglan',x:30,y:26},
+     {k:'brat',label:'Braț sus',x:81,y:26},
+     {k:'piept',label:'Piept',x:50,y:36},
+     {k:'maneca',label:'Mânecă',x:13,y:50},
+     {k:'fata',label:'Față',x:35,y:62},
+     {k:'spate',label:'Spate',x:65,y:62},
+     {k:'mansete',label:'Manșetă',x:11,y:76},
+     {k:'tiv',label:'Tiv',x:62,y:86},
+     {k:'lungime',label:'Lungime',x:38,y:86}],
    parts:[
      {name:'Platcă și corp',shape:'flat',rows:[
        'ch 44, turn',
@@ -1655,7 +1660,11 @@ function planCardigan(p){
   var M=Math.round(brat/sw);                           // ochiuri în mânecă, cu tot cu subraț
   var b=M-2;                                           // mâneca fără cele 2 de la subraț
   var corp=B-2;                                        // corpul fără cele 2 lanțuri
-  var c=Math.round(corp/2), a=Math.round((corp-c)/2);  // spatele cât două fețe
+  /* dacă ai scris față și spate, împărțirea merge după ele; altfel spatele e cât două fețe */
+  var fata=num(d.fata),spate=num(d.spate),c,a;
+  if(fata&&spate){c=Math.round(corp*spate/(2*fata+spate));}
+  else{c=Math.round(corp/2);}
+  a=Math.round((corp-c)/2);
   c=corp-2*a;
   if(a<2||c<2||b<2)return {preaMic:true};
 
@@ -1674,6 +1683,8 @@ function planCardigan(p){
   if(lung)plan.randuriCorp=Math.max(0,Math.round(lung/rowCm)-R);
   if(man)plan.tureManeca=Math.max(1,Math.round(man/rowCm));
   if(mans)plan.mansete=Math.max(2,Math.round(mans/sw));
+  var rag=num(d.raglan);
+  if(rag&&Math.abs(rag-plan.raglanCm)>0.1*rag)plan.ragScris=rag;
   return plan;
 }
 function renderPlan(p){
@@ -1693,6 +1704,7 @@ function renderPlan(p){
   h+='<li>Mâneca: <b>'+pl.maneca+'</b> ochiuri'+(pl.tureManeca?', <b>'+pl.tureManeca+'</b> ture':'')+
      (pl.mansete?', scazi până la <b>'+pl.mansete+'</b> la manșetă':'')+'</li>';
   h+='</ul>';
+  if(pl.ragScris)h+='<p class="size-note">La raglan ai scris '+cmTxt(pl.ragScris)+', dar din gât și piept iese '+cmTxt(pl.raglanCm)+'. Numerele de mai sus merg după gât și piept.</p>';
   if(pl.adanc)h+='<p class="size-note wrn-note">Raglanul iese adânc, iar mâneca pornește de la doar '+pl.b0+' ochiuri: gâtul e mic față de piept, și toată diferența o duce raglanul. Dacă nu vrei o platcă atât de lungă, pornește cu un gât mai larg sau lucrează platca cu ochiuri mai scunde.</p>';
   h+='<p class="size-note">Numerele vin din măsurile de pe desen și din proba ta de rând, socotite cu stâlpi. Modelul din listă rămâne cum e — astea sunt cifrele pentru mărimea ta.</p></div>';
   box.innerHTML=h;

@@ -65,7 +65,8 @@ rând de lămurire sub desen, iar o parte poate avea `notes`, care ajunge în �
 
 Cardul **Măsurile mele** apare la proiectele făcute dintr-un model care are desen. Arată
 același desen, dar fără etichetele cu numărul de ochiuri (ascunse din CSS), și pune peste
-el căsuțe de scris, așezate procentual: gât, braț sus, piept, mânecă, manșetă, lungime.
+el zece căsuțe de scris, așezate procentual: gât, raglan, braț sus, piept, mânecă, față,
+spate, manșetă, tiv și lungime.
 
 Ce scrii se ține pe proiect, în `p.dims`, deci merge și prin sincronizare. Căsuțele nu
 declanșează o re-randare completă, ca să nu-ți sară cursorul din ele cât scrii.
@@ -87,6 +88,10 @@ piept, crescând 8 ochiuri pe rând. De aici ies, în ordine inversă, numărul 
 raglan și împărțirea primului rând. Când gâtul e mic față de piept, raglanul iese foarte
 adânc și mâneca ar porni de la câteva ochiuri — atunci apare un avertisment, pentru că
 numerele sunt corecte matematic, dar greu de lucrat.
+
+Dacă scrii **față** și **spate**, împărțirea corpului merge după ele în loc de regula
+implicită (spatele cât două fețe). Dacă scrii **raglan** și iese altceva din gât și
+piept, ți-o spune — numerele rămân după gât și piept, ca să existe o singură sursă.
 
 ## Mărime
 
