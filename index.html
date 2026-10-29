@@ -1624,7 +1624,34 @@ var CARD_LAT=[1,2,2,2,1];        // câte îmbinări are lângă ea fiecare buca
 var CARD_INC='(?:(?:sc|hdc|dc|tr)\\s*)?(?:inc|increase|cr|crestere)|\\d+\\s*(?:sc|hdc|dc|tr)\\s+in\\s+next\\s+st';
 var RE_CARD_RUN=/^\s*(?:dc\s*(\d+)|(\d+)\s*dc)\s*$/i;
 var RE_CARD_INC=new RegExp('^\\s*(?:'+CARD_INC+')\\s*$','i');
-var RE_CARD_INCN=/^\s*(\d+)\s*(?:sc|hdc|dc|tr)\s+in\s+next\s+st\s*$/i;
+var RE_CARD_INCN=/^\s*(\d+)\s*(?:sc|hdc|dc|tr)\s+in\s+(?:the\s+)?(?:same|next|acelasi|urmatorul)(?:\s+(?:st|stitch|ochi))?\s*$/i;
+/* o îmbinare scrisă ca grup lucrat într-un singur ochi:
+   „(dc 3) in same st”, „(3 dc) in next st”, „(dc, dc, dc) in same st” */
+var RE_CARD_SHELL=/^\s*\(\s*([^()]*?)\s*\)\s*(?:in|into)\s+(?:the\s+)?(?:same|next|acelasi|urmatorul)(?:\s+(?:st|stitch|ochi|sp|space|spatiu))?\s*$/i;
+var RE_CARD_UNU=/^\s*(?:(?:dc|sc|hdc|tr)\s*(\d+)|(\d+)\s*(?:dc|sc|hdc|tr)|(?:dc|sc|hdc|tr))\s*$/i;
+/* câți stâlpi intră în ochiul acela */
+function cardShellN(inner){
+  var p=String(inner).split(','),n=0,m;
+  for(var i=0;i<p.length;i++){
+    m=RE_CARD_UNU.exec(p[i]);
+    if(!m)return 0;
+    n+=m[1]?+m[1]:m[2]?+m[2]:1;
+  }
+  return n;
+}
+/* tăiem la virgule, dar nu la cele dinăuntrul parantezelor */
+function cardSplit(t){
+  var out=[],cur='',d=0,c;
+  for(var i=0;i<t.length;i++){
+    c=t[i];
+    if(c==='('||c==='[')d++;
+    else if(c===')'||c===']')d--;
+    if(c===','&&d===0){out.push(cur);cur='';}
+    else cur+=c;
+  }
+  out.push(cur);
+  return out;
+}
 var RE_CARD_CH=/^ch\s*(\d+)\s*(?:,\s*turn\s*)?$/i;
 var RE_CARD_SEP=/^\s*dc\s+\d+\s*,\s*ch\s*\d+\s*,\s*sk\s+\d+\s*,\s*dc\s+\d+\s*,\s*ch\s*\d+\s*,\s*sk\s+\d+\s*,\s*dc\s+\d+\s*(?:,\s*turn\s*)?$/i;
 var RE_MAN_1=/^dc\s+\d+\s*$/i;
@@ -1638,18 +1665,23 @@ function esteManeca(pt){return !!pt&&/^M[âa]nec/i.test(pt.name||'');}
 function cardBuc(text){
   var s=String(text||''),mt=/(,?\s*turn\s*)$/i.exec(s),coada=mt?mt[1]:'';
   var t=coada?s.slice(0,s.length-coada.length):s;
-  var buc=t.split(','),run=[],grup=[],cur=null,m,k,i;
+  var buc=cardSplit(t),run=[],grup=[],cur=null,m,k,n,i;
   for(i=0;i<buc.length;i++){
     if((m=RE_CARD_RUN.exec(buc[i]))){
       if(cur){grup.push(cur);cur=null;}
       if(grup.length!==run.length)return null;   // două bucăți lipite: nu e raglan
       run.push({n:+(m[1]||m[2]),txt:buc[i]});
-    }else if(RE_CARD_INC.test(buc[i])){
-      if(!run.length)return null;                // rândul începe cu o creștere
+    }else{
+      /* o creștere: fie scrisă scurt („inc”, „dc inc”), fie ca număr de
+         stâlpi într-un ochi („3 dc in same st”, „(dc 3) in same st”) */
+      if((k=RE_CARD_SHELL.exec(buc[i])))n=cardShellN(k[1]);
+      else if((k=RE_CARD_INCN.exec(buc[i])))n=+k[1];
+      else if(RE_CARD_INC.test(buc[i]))n=2;
+      else return null;                          // orice altceva: nu e raglan
+      if(!n||!run.length)return null;
       if(!cur)cur={cons:0,prod:0,txt:[]};
-      k=RE_CARD_INCN.exec(buc[i]);
-      cur.cons++;cur.prod+=k?+k[1]:2;cur.txt.push(buc[i]);
-    }else return null;                           // orice altceva: nu e raglan
+      cur.cons++;cur.prod+=n;cur.txt.push(buc[i]);
+    }
   }
   if(cur)grup.push(cur);
   if(run.length!==5||grup.length!==4)return null;

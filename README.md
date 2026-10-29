@@ -75,7 +75,9 @@ scris: `ch 64`, `ch 64, turn` sau `ch64`.
 **Nu presupunem cum arată îmbinarea.** `cardBuc` desface rândul în bucăți: cinci grupuri
 de stâlpi simpli și patru îmbinări între ele. Numărul se citește scris oricum — `dc 10`
 sau `10 dc` — iar îmbinarea poate fi orice știe parserul (`inc`, `dc inc`, `crestere`,
-`3 dc in next st`) și poate avea unul sau mai multe ochiuri. Merg deopotrivă tiparul
+`3 dc in same st`, `(dc 3) in same st`, `(dc, dc, dc) in same st`) și poate avea unul sau
+mai multe ochiuri. Tăierea la virgule e făcută de `cardSplit`, care sare peste virgulele
+dinăuntrul parantezelor. Merg deopotrivă tiparul
 modelului (două `inc`, adică 2 ochiuri → 4) și cel cu o singură îmbinare de `3 dc in
 next st` (1 ochi → 3).
 
