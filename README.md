@@ -66,13 +66,19 @@ ultimul rând, cele 4 ochiuri ale fiecărei îmbinări se împart în două, câ
 parte — de acolo ies numerele din rândul de separare. Mâneca pornește de la ochiurile ei
 plus 2 de la subraț, iar scăderile se redistribuie pe tura nouă.
 
+Primul rând e citit oricum ar fi scris: `ch 64`, `ch 64, turn` sau `ch64`.
+
 Se ating numai rândurile care încă arată cum le-a scris modelul: dacă ai schimbat tu un
 rând de raglan, numărătoarea se oprește acolo și restul rămâne al tău. Bifele nu se
 schimbă. Câte rânduri de raglan sunt se citește din rânduri, nu se ține minte, deci dacă
 ștergi unul și salvezi primul rând încă o dată, totul se reface după numărul nou.
 
-Funcțiile sunt `cardSect`, `cardRand`, `cardDupa`, `cardScad`, `cardPlan`,
-`adaptCardigan` și `cardNoteText`, lângă `useModel` în `index.html`.
+Când rândurile au rămas în urma gâtului — gâtul schimbat înainte să existe potrivirea, sau
+un rând de raglan șters — nu le rescriem pe furiș: nota spune „Rândurile de mai jos au
+rămas pe gâtul vechi” și apare butonul **Potrivește rândurile**.
+
+Funcțiile sunt `cardSect`, `cardRand`, `cardSepRand`, `cardDupa`, `cardScad`, `cardPlan`,
+`cardNepotrivit`, `adaptCardigan` și `cardNoteText`, lângă `useModel` în `index.html`.
 
 
 Modelele stau în `MODELE`, lângă restul datelor din `index.html` — ca să adaugi unul,

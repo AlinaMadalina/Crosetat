@@ -197,6 +197,10 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
 .size-res div{font-size:.85rem;color:var(--muted)}
 .size-res b{display:block;font-family:"Bricolage Grotesque",Georgia,serif;font-weight:800;font-size:1.5rem;color:var(--ink);letter-spacing:-.02em;margin-bottom:2px}
 .size-note{margin:10px 0 0;font-size:.88rem;color:var(--muted)}
+#cardNote{margin:0 0 10px}
+#cardNote b{color:var(--ink)}
+#cardFix{display:inline-block;margin-top:6px;border:1px solid var(--brown);background:var(--brown);
+  color:#fff;border-radius:9px;padding:7px 13px;font:inherit;font-size:.86rem;font-weight:600;cursor:pointer}
 #sideWork{margin:0 0 10px}
 #sideWork .sp-b{margin-top:6px}
 .sidepick button.fin:not([aria-pressed=true]) b{color:var(--done)}
@@ -1191,7 +1195,7 @@ function render(){
       '<div class="tools"><button data-a="edit" aria-label="Editează">✎</button><button data-a="del" aria-label="Șterge">✕</button></div></li>';
   }).join('');
   var cn=cardNoteText(p,pt);
-  $('cardNote').textContent=cn;$('cardNote').hidden=!cn;
+  $('cardNote').innerHTML=cn;$('cardNote').hidden=!cn;
   var done=pt.rows.filter(function(r){return rowDoneOn(r,ws);}).length;
   $('listHint').textContent=!pt.rows.length?'Încă nu ai niciun rând în partea asta.':(!st.showDone&&done===pt.rows.length?'Toate cele '+done+' sunt bifate.':(!st.showDone&&done?done+' bifate sunt ascunse.':''));
   // legend
@@ -1253,6 +1257,11 @@ $('rows').addEventListener('click',function(e){
   if(e.target.type==='checkbox'){setRowDone(p,pt,pt.rows[i],e.target.checked);if(e.target.checked&&picked===i)picked=-1;if(!e.target.checked)p.finished=false;save();render();
     if(partDone(pt)&&!$('nextCard').hidden)$('nextCard').scrollIntoView({block:'center',behavior:'smooth'});return;}
   picked=i;render();
+});
+$('cardNote').addEventListener('click',function(e){
+  if(e.target.id!=='cardFix')return;
+  var p=proj();
+  if(adaptCardigan(p,part(p))){picked=-1;save();render();}
 });
 $('chart').addEventListener('click',function(e){var t=e.target.closest('[data-r]');if(!t)return;var r=t.dataset.r.split(':'),p=proj();
   p.curPart=p.parts[+r[0]].id;picked=+r[1];editing=-1;save();render();
@@ -1596,7 +1605,8 @@ $('sideWork').addEventListener('click',function(e){
    36) și le întindem pe gâtul tău, ca forma să rămână aceeași oricât de
    mare îl faci. */
 var CARD_B={gat:44,fata:5,maneca:5,spate:16};
-var RE_CARD_CH=/^ch\s+(\d+)\s*,\s*turn$/i;
+/* primul rând îl luăm oricum l-ai scrie: „ch 64”, „ch 64, turn”, „ch64” */
+var RE_CARD_CH=/^ch\s*(\d+)\s*(?:,\s*turn\s*)?$/i;
 var RE_CARD_RAG=/^dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+\s*,\s*turn$/i;
 var RE_CARD_SEP=/^dc\s+\d+,\s*ch\s*2,\s*sk\s+\d+,\s*dc\s+\d+,\s*ch\s*2,\s*sk\s+\d+,\s*dc\s+\d+\s*,\s*turn$/i;
 var RE_MAN_1=/^dc\s+\d+$/i;
@@ -1624,6 +1634,10 @@ function cardRand(sec,k){
 /* După ultimul rând de raglan, cele 4 ochiuri ale fiecărei îmbinări se
    împart în două: 2 rămân la o secțiune, 2 la cealaltă. */
 function cardDupa(sec,R){return {fata:sec.f+R+1,maneca:sec.s+2*R+2,spate:sec.b+2*R+2};}
+function cardSepRand(d){
+  return 'dc '+d.fata+', ch 2, sk '+d.maneca+', dc '+d.spate+
+         ', ch 2, sk '+d.maneca+', dc '+d.fata+', turn';
+}
 function cardScad(S){                    // 3 scăderi egal distribuite pe o tură de S
   var k=Math.floor(S/3)-2;
   if(k<0)return null;
@@ -1654,8 +1668,7 @@ function adaptCardigan(p,pt){
   if(!pl)return null;
   for(var k=0;k<pl.R;k++)pt.rows[1+k].text=cardRand(pl.sec,k);
   var d=pl.dupa;
-  if(pl.sep>=0)pt.rows[pl.sep].text='dc '+d.fata+', ch 2, sk '+d.maneca+
-    ', dc '+d.spate+', ch 2, sk '+d.maneca+', dc '+d.fata+', turn';
+  if(pl.sep>=0)pt.rows[pl.sep].text=cardSepRand(d);
   pl.man=d.maneca+2;                     // mâneca ia și cele 2 ochiuri de la subraț
   (p.parts||[]).forEach(function(q){
     if(q===pt||!/^M[âa]nec/i.test(q.name||'')||!q.rows.length)return;
@@ -1669,6 +1682,29 @@ function adaptCardigan(p,pt){
     }
   });
   return pl;
+}
+/* Rândurile mai pot rămâne în urma gâtului: dacă l-ai schimbat înainte să
+   existe potrivirea automată, sau dacă ai scos un rând de raglan. Atunci nu
+   umblăm la ele pe furiș — îți punem un buton. */
+function cardNepotrivit(p,pt,pl){
+  for(var k=0;k<pl.R;k++)
+    if((pt.rows[1+k].text||'').trim()!==cardRand(pl.sec,k))return true;
+  if(pl.sep>=0&&(pt.rows[pl.sep].text||'').trim()!==cardSepRand(pl.dupa))return true;
+  var man=pl.dupa.maneca+2,gresit=false;
+  (p.parts||[]).forEach(function(q){
+    if(q===pt||!esteManeca(q)||!q.rows.length)return;
+    var t0=(q.rows[0].text||'').trim();
+    if(!RE_MAN_1.test(t0))return;
+    if(t0!=='dc '+man){gresit=true;return;}
+    var S=man;
+    for(var i=1;i<q.rows.length;i++){
+      var r=(q.rows[i].text||'').trim();
+      if(!RE_MAN_SC.test(r))continue;
+      if(r!==cardScad(S))gresit=true;
+      S-=3;
+    }
+  });
+  return gresit;
 }
 /* Linia de sub lista de rânduri: ce iese din gâtul scris acum. E calculată
    de fiecare dată din rânduri, deci nu rămâne niciodată în urmă. */
@@ -1685,11 +1721,15 @@ function cardNoteText(p,pt){
     return '';
   }
   var d=pl.dupa;
-  return 'Gâtul de '+ochiuriTxt(pl.N)+' se împarte în față '+pl.sec.f+', mânecă '+
+  var t='Din gâtul de '+ochiuriTxt(pl.N)+' ies: față '+pl.sec.f+', mânecă '+
     pl.sec.s+', spate '+pl.sec.b+', plus 2 ochiuri la fiecare dintre cele 4 îmbinări. '+
     'După cele '+pl.R+' '+(pl.R===1?'rând':'rânduri')+' de raglan: față '+d.fata+
     ', spate '+d.spate+', mânecă '+d.maneca+'. Mâneca pornește de la '+
     ochiuriTxt(d.maneca+2)+', cu cele 2 de la subraț.';
+  if(cardNepotrivit(p,pt,pl))
+    t='<b>Rândurile de mai jos au rămas pe gâtul vechi.</b> '+t+
+      ' <button type="button" id="cardFix">Potrivește rândurile</button>';
+  return t;
 }
 
 function useModel(m){
