@@ -373,6 +373,7 @@ details.help code{background:var(--bg);padding:1px 5px;border-radius:5px}
 <button id="copyMissing" hidden></button>
 <button id="syncDone" hidden></button>
 <div class="sidepick" id="sideWork" hidden></div>
+<p class="size-note" id="cardNote" hidden></p>
 <ol class="rows" id="rows"></ol>
 <p class="hint" id="listHint"></p>
 
@@ -782,7 +783,7 @@ var MODELE=[
   {name:'Cardigan',
    hint:'Raglan de sus în jos, dintr-o bucată: gât, platcă, corp, apoi cele două mâneci. Un schelet, nu o mărime anume — vezi desenul și nota de mai jos.',
    svg:'<svg viewBox="0 0 340 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Desenul cardiganului: fețele, spatele și mânecile, cu liniile de raglan"><g fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><!-- maneca stanga --><path d="M112 52 L62 64 L34 168 L78 178 L112 92 Z"/><!-- maneca dreapta --><path d="M228 52 L278 64 L306 168 L262 178 L228 92 Z"/><!-- fata stanga: de la umar, pe langa gat, in jos --><path d="M112 52 L148 46 L166 62 L166 222 L112 222 Z"/><!-- fata dreapta --><path d="M228 52 L192 46 L174 62 L174 222 L228 222 Z"/></g><!-- liniile de raglan: de la gat la subrat --><g fill="none" stroke="var(--brown)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"><path d="M148 46 L112 92"/><path d="M192 46 L228 92"/></g><!-- deschizatura din fata --><line x1="170" y1="62" x2="170" y2="222" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 5"/><!-- nasturi --><g fill="var(--brown)"><circle cx="170" cy="86" r="3.5"/><circle cx="170" cy="120" r="3.5"/><circle cx="170" cy="154" r="3.5"/><circle cx="170" cy="188" r="3.5"/></g><g fill="var(--muted)" font-family="inherit" font-size="12" text-anchor="middle"><text x="170" y="38">gât · 44</text><text x="136" y="150">față</text><text x="136" y="166">12</text><text x="204" y="150">față</text><text x="204" y="166">12</text><text x="66" y="128">mânecă</text><text x="66" y="144">19</text><text x="274" y="128">mânecă</text><text x="274" y="144">19</text></g><g fill="var(--brown)" font-family="inherit" font-size="11" text-anchor="middle"><text x="120" y="118">raglan</text><text x="220" y="118">raglan</text></g><g fill="var(--muted)" font-family="inherit" font-size="11" text-anchor="middle"><text x="170" y="242">spatele, 30 de ochiuri, e în spatele celor două fețe</text></g></svg>',
-   note:'Mărimea o dai tu. Gâtul de 44 de ochiuri și cele 6 rânduri de raglan sunt un punct de pornire: măsoară un rând în cardul Mărime și vezi cât îți iese în centimetri, apoi schimbă primul rând și numărul de rânduri. Fiecare rând de raglan adaugă 8 ochiuri: 1 la fiecare față, 2 la fiecare mânecă, 2 la spate. Dacă adaugi rânduri de raglan, schimbă și numerele din rândul de separare, ca să se potrivească.',
+   note:'Mărimea o dai tu, din primul rând: schimbi gâtul și restul se potrivește singur — rândurile de raglan, rândul de separare și amândouă mânecile. Gâtul de 44 de ochiuri și cele 6 rânduri de raglan sunt doar un punct de pornire: măsoară un rând în cardul Mărime și vezi cât îți iese în centimetri. Fiecare rând de raglan adaugă 8 ochiuri: 1 la fiecare față, 2 la fiecare mânecă, 2 la spate. Dacă adaugi sau scoți rânduri de raglan, salvează pe urmă primul rând încă o dată, chiar și cu aceeași cifră, și se refac toate după numărul nou de rânduri.',
    dims:[
      {k:'gat',label:'Gât',x:50,y:9},
      {k:'raglan',label:'Raglan',u:'l',x:30,y:26},
@@ -1189,6 +1190,8 @@ function render(){
       '<div><span class="n">'+W+' '+(i+1)+':</span> <span class="t">'+esc(r.text)+'</span>'+(c?'<br><span class="cnt">'+c+'</span>':'')+m+'</div>'+
       '<div class="tools"><button data-a="edit" aria-label="Editează">✎</button><button data-a="del" aria-label="Șterge">✕</button></div></li>';
   }).join('');
+  var cn=cardNoteText(p,pt);
+  $('cardNote').textContent=cn;$('cardNote').hidden=!cn;
   var done=pt.rows.filter(function(r){return rowDoneOn(r,ws);}).length;
   $('listHint').textContent=!pt.rows.length?'Încă nu ai niciun rând în partea asta.':(!st.showDone&&done===pt.rows.length?'Toate cele '+done+' sunt bifate.':(!st.showDone&&done?done+' bifate sunt ascunse.':''));
   // legend
@@ -1229,6 +1232,9 @@ $('save').addEventListener('click',function(){
     pt.rows[editing].text=t;
     if(tw){var tr=twinRow(pt,tw,editing);
       if(tr)tr.text=t;else{tw.rows.splice(Math.min(editing,tw.rows.length),0,{id:uid(),text:t,done:false,link:linkOf(pt.rows[editing])});p.otherFinished=false;}}
+    /* La cardigan, primul rând e gâtul: din el ies raglanul, separarea și
+       mânecile, așa că le rescriem ca să se potrivească. */
+    if(editing===0&&p.model==='Cardigan')adaptCardigan(p,pt);
     picked=editing;editing=-1;
   }else{
     var nr={id:uid(),text:t,done:false};linkOf(nr);pt.rows.push(nr);picked=-1;p.finished=false;
@@ -1581,6 +1587,111 @@ $('sideWork').addEventListener('click',function(e){
   save();render();
 });
 /* ---- modele gata făcute ---- */
+/* ---- cardiganul se potrivește la gâtul scris de tine ----
+   Raglan de sus în jos: gâtul se împarte în față, mânecă, spate, mânecă,
+   față, cu câte 2 ochiuri la fiecare dintre cele 4 îmbinări. Un rând de
+   raglan adaugă 8 ochiuri, dar nu la fel peste tot: fața crește cu 1,
+   fiindcă are o singură îmbinare lângă ea, iar mâneca și spatele cu 2, că
+   au câte două. Păstrăm proporțiile modelului de pornire (5 / 5 / 16 din
+   36) și le întindem pe gâtul tău, ca forma să rămână aceeași oricât de
+   mare îl faci. */
+var CARD_B={gat:44,fata:5,maneca:5,spate:16};
+var RE_CARD_CH=/^ch\s+(\d+)\s*,\s*turn$/i;
+var RE_CARD_RAG=/^dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+\s*,\s*turn$/i;
+var RE_CARD_SEP=/^dc\s+\d+,\s*ch\s*2,\s*sk\s+\d+,\s*dc\s+\d+,\s*ch\s*2,\s*sk\s+\d+,\s*dc\s+\d+\s*,\s*turn$/i;
+var RE_MAN_1=/^dc\s+\d+$/i;
+var RE_MAN_SC=/^\(dc\s+\d+,\s*dc2tog\)\s*x\s*3(\s*,\s*dc\s+\d+)?$/i;
+
+function ochiuriTxt(n){var r=n%100;return n+((r===0||r>=20)?' de ochiuri':' ochiuri');}
+
+function cardSect(N){
+  var M=N-8,M0=CARD_B.gat-8;            // 8 ochiuri stau la cele 4 îmbinări
+  if(M<5)return null;
+  var f=Math.max(1,Math.round(M*CARD_B.fata/M0));
+  var s=Math.max(1,Math.round(M*CARD_B.maneca/M0));
+  var b=M-2*f-2*s;
+  while(b<1&&(f>1||s>1)){                // gât mic: ciupim din fețe și mâneci
+    if(s>1&&s>=f)s--;else if(f>1)f--;else break;
+    b=M-2*f-2*s;
+  }
+  return b<1?null:{f:f,s:s,b:b};
+}
+function cardRand(sec,k){
+  var f=sec.f+k,s=sec.s+2*k,b=sec.b+2*k;
+  return 'dc '+f+', inc, inc, dc '+s+', inc, inc, dc '+b+
+         ', inc, inc, dc '+s+', inc, inc, dc '+f+', turn';
+}
+/* După ultimul rând de raglan, cele 4 ochiuri ale fiecărei îmbinări se
+   împart în două: 2 rămân la o secțiune, 2 la cealaltă. */
+function cardDupa(sec,R){return {fata:sec.f+R+1,maneca:sec.s+2*R+2,spate:sec.b+2*R+2};}
+function cardScad(S){                    // 3 scăderi egal distribuite pe o tură de S
+  var k=Math.floor(S/3)-2;
+  if(k<0)return null;
+  var r=S-3*(k+2);
+  return '(dc '+k+', dc2tog) x3'+(r?', dc '+r:'');
+}
+/* Citim din rândurile părții gâtul și câte rânduri de raglan sunt scrise.
+   Dacă nu arată a platcă de cardigan, întoarcem null și nu umblăm la nimic. */
+function esteManeca(pt){return !!pt&&/^M[âa]nec/i.test(pt.name||'');}
+function cardPlan(pt){
+  if(!pt||!pt.rows||!pt.rows.length||esteManeca(pt))return null;
+  var m=RE_CARD_CH.exec((pt.rows[0].text||'').trim());
+  if(!m)return null;
+  var R=0;
+  while(1+R<pt.rows.length&&RE_CARD_RAG.test((pt.rows[1+R].text||'').trim()))R++;
+  if(!R)return null;
+  var sec=cardSect(+m[1]);
+  if(!sec)return null;
+  var sep=(1+R<pt.rows.length&&RE_CARD_SEP.test((pt.rows[1+R].text||'').trim()))?1+R:-1;
+  return {N:+m[1],R:R,sep:sep,sec:sec,dupa:cardDupa(sec,R)};
+}
+/* Rescrie tot ce decurge din primul rând: raglanul, rândul de separare și
+   mânecile. Atingem numai rândurile care încă arată cum le-a scris modelul;
+   dacă ai schimbat tu unul, rămâne al tău. Bifele nu se ating — dacă ai
+   bifat deja rânduri, uită-te peste ele, că numerele s-au mutat. */
+function adaptCardigan(p,pt){
+  var pl=cardPlan(pt);
+  if(!pl)return null;
+  for(var k=0;k<pl.R;k++)pt.rows[1+k].text=cardRand(pl.sec,k);
+  var d=pl.dupa;
+  if(pl.sep>=0)pt.rows[pl.sep].text='dc '+d.fata+', ch 2, sk '+d.maneca+
+    ', dc '+d.spate+', ch 2, sk '+d.maneca+', dc '+d.fata+', turn';
+  pl.man=d.maneca+2;                     // mâneca ia și cele 2 ochiuri de la subraț
+  (p.parts||[]).forEach(function(q){
+    if(q===pt||!/^M[âa]nec/i.test(q.name||'')||!q.rows.length)return;
+    if(!RE_MAN_1.test((q.rows[0].text||'').trim()))return;
+    q.rows[0].text='dc '+pl.man;
+    var S=pl.man;
+    for(var i=1;i<q.rows.length;i++){
+      if(!RE_MAN_SC.test((q.rows[i].text||'').trim()))continue;
+      var nou=cardScad(S);
+      if(nou){q.rows[i].text=nou;S-=3;}
+    }
+  });
+  return pl;
+}
+/* Linia de sub lista de rânduri: ce iese din gâtul scris acum. E calculată
+   de fiecare dată din rânduri, deci nu rămâne niciodată în urmă. */
+function cardNoteText(p,pt){
+  if(!p||p.model!=='Cardigan')return '';
+  var pl=cardPlan(pt);
+  if(!pl){
+    /* gât scris, dar prea mic ca să se împartă: spunem de ce n-am potrivit nimic */
+    var m=(pt&&pt.rows&&pt.rows.length&&!esteManeca(pt))?RE_CARD_CH.exec((pt.rows[0].text||'').trim()):null;
+    if(m&&!cardSect(+m[1]))
+      return 'Gâtul de '+ochiuriTxt(+m[1])+' e prea mic ca să se împartă în două fețe, '+
+        'două mâneci și spate, plus cele 8 ochiuri ale îmbinărilor. Pune cel puțin 13 '+
+        'și rândurile de mai jos se potrivesc singure.';
+    return '';
+  }
+  var d=pl.dupa;
+  return 'Gâtul de '+ochiuriTxt(pl.N)+' se împarte în față '+pl.sec.f+', mânecă '+
+    pl.sec.s+', spate '+pl.sec.b+', plus 2 ochiuri la fiecare dintre cele 4 îmbinări. '+
+    'După cele '+pl.R+' '+(pl.R===1?'rând':'rânduri')+' de raglan: față '+d.fata+
+    ', spate '+d.spate+', mânecă '+d.maneca+'. Mâneca pornește de la '+
+    ochiuriTxt(d.maneca+2)+', cu cele 2 de la subraț.';
+}
+
 function useModel(m){
   var p={id:uid(),name:m.name,model:m.name,parts:[],curPart:null,finished:false};
   m.parts.forEach(function(d){

@@ -50,7 +50,29 @@ după aceea.
 | Hexagon granny | hexagon | 3 ture |
 | Dreptunghi | plat | lanț de 20 și rânduri dus-întors |
 | Stea | pentagon + laturi | vârful scris o dată, lucrat pe fiecare latură |
-| Cardigan | plat + 2 cercuri | raglan de sus în jos, cu desenul pieselor; mânecile sunt două părți separate |
+| Cardigan | plat + 2 cercuri | raglan de sus în jos, cu desenul pieselor; mânecile sunt două părți separate; mărimea se ia din primul rând |
+
+### Cardiganul se potrivește singur la gât
+
+Primul rând al platcăi e gâtul, și din el iese tot restul. Când îl salvezi, se rescriu
+singure rândurile de raglan, rândul de separare și amândouă mânecile.
+
+Cum: gâtul se împarte în față, mânecă, spate, mânecă, față, plus câte 2 ochiuri la
+fiecare dintre cele 4 îmbinări. Proporțiile sunt cele ale modelului de pornire —
+5 / 5 / 16 din 36 — întinse pe gâtul scris de tine, ca forma să rămână aceeași oricât de
+mare îl faci. Un rând de raglan adaugă 8 ochiuri, dar nu la fel peste tot: fața crește cu
+1, că are o singură îmbinare lângă ea, iar mâneca și spatele cu 2, că au câte două. După
+ultimul rând, cele 4 ochiuri ale fiecărei îmbinări se împart în două, câte 2 de fiecare
+parte — de acolo ies numerele din rândul de separare. Mâneca pornește de la ochiurile ei
+plus 2 de la subraț, iar scăderile se redistribuie pe tura nouă.
+
+Se ating numai rândurile care încă arată cum le-a scris modelul: dacă ai schimbat tu un
+rând de raglan, numărătoarea se oprește acolo și restul rămâne al tău. Bifele nu se
+schimbă. Câte rânduri de raglan sunt se citește din rânduri, nu se ține minte, deci dacă
+ștergi unul și salvezi primul rând încă o dată, totul se reface după numărul nou.
+
+Funcțiile sunt `cardSect`, `cardRand`, `cardDupa`, `cardScad`, `cardPlan`,
+`adaptCardigan` și `cardNoteText`, lângă `useModel` în `index.html`.
 
 
 Modelele stau în `MODELE`, lângă restul datelor din `index.html` — ca să adaugi unul,
