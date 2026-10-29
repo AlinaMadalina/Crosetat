@@ -72,16 +72,28 @@ când schimbi **gâtul** o socotim noi din nou, din proporțiile modelului de po
 (5 / 5 / 16 din 36), și atunci se reface tot raglanul. Primul rând e citit oricum ar fi
 scris: `ch 64`, `ch 64, turn` sau `ch64`.
 
-**Scrisul rămâne al tău.** Creșterea se poate scrie în mai multe feluri — `inc`, `dc inc`,
-`crestere`, `2 dc in next st` — și rândul de raglan e recunoscut cu oricare dintre ele.
-Rândurile de sub el nu se scriu după un șablon al nostru: se iau cuvânt cu cuvânt din
-rândul de la care pleacă și li se schimbă numai cele cinci numere de după `dc`
-(`cardRescrie`). Așa, dacă ai scris `dc inc`, și cele de dedesubt scriu `dc inc`. La fel
-rândul de separare și prima tură a mânecii.
+**Nu presupunem cum arată îmbinarea.** `cardBuc` desface rândul în bucăți: cinci grupuri
+de stâlpi simpli și patru îmbinări între ele. Numărul se citește scris oricum — `dc 10`
+sau `10 dc` — iar îmbinarea poate fi orice știe parserul (`inc`, `dc inc`, `crestere`,
+`3 dc in next st`) și poate avea unul sau mai multe ochiuri. Merg deopotrivă tiparul
+modelului (două `inc`, adică 2 ochiuri → 4) și cel cu o singură îmbinare de `3 dc in
+next st` (1 ochi → 3).
 
-Se presupune structura modelului: cinci bucăți și câte **două** creșteri la fiecare
-dintre cele 4 îmbinări. Un rând scris cu altă structură nu e recunoscut, deci nu e atins
-— și nici nu trage nimic după el.
+**Creșterea se calculează din îmbinarea ta**, nu dintr-o constantă: cât scoate în plus
+față de cât mănâncă (`prod − cons`) se împarte în două, câte atâta de fiecare parte.
+Amândouă tiparele de mai sus dau 1 de fiecare parte, deci fiecare bucată crește cu atâta
+de câte îmbinări are lângă ea (`CARD_LAT = [1,2,2,2,1]`). Dacă cele 4 îmbinări nu sunt la
+fel, rândul nu e recunoscut și nu-l atingem.
+
+La **separare** îmbinarea nu se mai repetă și ochiurile ei se împart între vecini. Când
+sunt în număr impar — `3 dc in next st` — cel din mijloc rămâne la corp, nu la mânecă, și
+nota o spune. Câte lanțuri se pun la subraț se citesc din rândul de separare, nu sunt
+fixate la 2.
+
+**Scrisul rămâne al tău.** Rândurile de sub cel schimbat nu se scriu după un șablon al
+nostru: `cardScrie` le reface din bucățile rândului de la care pleacă, schimbând numai
+cifrele celor cinci grupuri. Îmbinările trec cuvânt cu cuvânt. La fel rândul de separare
+și prima tură a mânecii.
 
 **Ce nu atingem:** rândurile de raglan de deasupra celui schimbat, și bifele. Dacă sari
 undeva la mijloc, saltul rămâne al tău, iar rândul de separare și mânecile urmează

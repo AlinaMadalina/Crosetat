@@ -1266,7 +1266,7 @@ $('cardNote').addEventListener('click',function(e){
   /* Dacă rândul 2 nu se potrivește cu gâtul, gâtul e cel bun și împărțim din
      nou tot. Dacă se potrivește, rândurile de raglan sunt ale tale și punem
      la punct doar ce vine după ultimul: separarea și mânecile. */
-  if(adaptCardigan(p,pt,cardSuma(pl.baza)===pl.N?pl.R:0)){picked=-1;save();render();}
+  if(adaptCardigan(p,pt,(pl.b&&cardSuma(pl.b)===pl.N)?pl.R:0)){picked=-1;save();render();}
 });
 $('chart').addEventListener('click',function(e){var t=e.target.closest('[data-r]');if(!t)return;var r=t.dataset.r.split(':'),p=proj();
   p.curPart=p.parts[+r[0]].id;picked=+r[1];editing=-1;save();render();
@@ -1602,130 +1602,156 @@ $('sideWork').addEventListener('click',function(e){
 });
 /* ---- modele gata făcute ---- */
 /* ---- cardiganul se potrivește singur ----
-   Raglan de sus în jos: gâtul se împarte în cinci bucăți — față, mânecă,
-   spate, mânecă, față — cu câte 2 ochiuri la fiecare dintre cele 4 îmbinări
-   dintre ele. Un rând de raglan adaugă 8 ochiuri, dar nu la fel peste tot:
-   fiecare bucată crește cu 1 pentru fiecare îmbinare de lângă ea. Fețele au
-   o singură îmbinare lângă ele, mânecile și spatele au câte două.
+   Raglan de sus în jos. Un rând de raglan are cinci bucăți de stâlpi simpli
+   — față, mânecă, spate, mânecă, față — și patru îmbinări între ele, în care
+   se crește. Nu presupunem cum e scrisă îmbinarea: o desfacem din rând așa
+   cum ai scris-o tu. Merge și „inc, inc”, și „dc inc, dc inc”, și o singură
+   îmbinare de „3 dc in next st”, și numărul scris oricum — „dc 10” sau
+   „10 dc”.
 
-   Împărțirea o dă RÂNDUL 2, așa cum e scris. Dacă vrei altă împărțire decât
-   cea din model, o scrii acolo și tot ce vine după urmează după ea. Doar
-   când schimbi gâtul o socotim noi din nou, păstrând proporțiile modelului
-   de pornire (5 / 5 / 16 din 36), ca forma să rămână aceeași oricât de mare
-   îl faci. La fel și mai jos: schimbi un rând de raglan și cele de sub el
-   pleacă de la al tău. */
+   Creșterea o socotim din îmbinarea ta: dacă ea mănâncă 1 ochi și scoate 3,
+   rămân 2 în plus, câte 1 de fiecare parte; dacă mănâncă 2 și scoate 4, tot
+   1 de fiecare parte. Așa, fiecare bucată crește cu atâta de câte îmbinări
+   are lângă ea — fețele au una, mânecile și spatele au câte două.
+
+   Împărțirea o dă RÂNDUL 2, așa cum e scris: schimbi tu croiala acolo și tot
+   ce urmează vine după ea. Doar când schimbi gâtul o socotim noi din nou,
+   din proporțiile modelului de pornire (5 / 5 / 16 din 36). La fel și mai
+   jos: schimbi un rând de raglan și cele de sub el pleacă de la al tău. */
 var CARD_B={gat:44,fata:5,maneca:5,spate:16};
-var CARD_CRESTE=[1,2,2,2,1];     // câte îmbinări are lângă ea fiecare bucată
-/* primul rând îl luăm oricum l-ai scrie: „ch 64”, „ch 64, turn”, „ch64” */
-var RE_CARD_CH=/^ch\s*(\d+)\s*(?:,\s*turn\s*)?$/i;
-/* O creștere o poți scrie în mai multe feluri, și parserul le ia pe toate:
-   „inc”, „dc inc”, „crestere”, „2 dc in next st”. Rândul de raglan îl
-   recunoaștem cu oricare dintre ele, nu doar cu „inc”. */
+var CARD_LAT=[1,2,2,2,1];        // câte îmbinări are lângă ea fiecare bucată
+/* felurile în care parserul știe să citească o creștere */
 var CARD_INC='(?:(?:sc|hdc|dc|tr)\\s*)?(?:inc|increase|cr|crestere)|\\d+\\s*(?:sc|hdc|dc|tr)\\s+in\\s+next\\s+st';
-var RE_CARD_RAG=(function(){
-  var I='\\s*(?:'+CARD_INC+')\\s*',D='\\s*dc\\s+\\d+\\s*';
-  return new RegExp('^'+D+','+I+','+I+','+D+','+I+','+I+','+D+','+I+','+I+','+D+','+I+','+I+','+D+
-                    '(?:,\\s*turn\\s*)?$','i');
-})();
+var RE_CARD_RUN=/^\s*(?:dc\s*(\d+)|(\d+)\s*dc)\s*$/i;
+var RE_CARD_INC=new RegExp('^\\s*(?:'+CARD_INC+')\\s*$','i');
+var RE_CARD_INCN=/^\s*(\d+)\s*(?:sc|hdc|dc|tr)\s+in\s+next\s+st\s*$/i;
+var RE_CARD_CH=/^ch\s*(\d+)\s*(?:,\s*turn\s*)?$/i;
 var RE_CARD_SEP=/^\s*dc\s+\d+\s*,\s*ch\s*\d+\s*,\s*sk\s+\d+\s*,\s*dc\s+\d+\s*,\s*ch\s*\d+\s*,\s*sk\s+\d+\s*,\s*dc\s+\d+\s*(?:,\s*turn\s*)?$/i;
-var RE_MAN_1=/^dc\s+\d+$/i;
+var RE_MAN_1=/^dc\s+\d+\s*$/i;
 var RE_MAN_SC=/^\(dc\s+\d+,\s*dc2tog\)\s*x\s*3(\s*,\s*dc\s+\d+)?$/i;
 
 function ochiuriTxt(n){var r=n%100;return n+((r===0||r>=20)?' de ochiuri':' ochiuri');}
 function esteManeca(pt){return !!pt&&/^M[âa]nec/i.test(pt.name||'');}
 
-/* împărțirea gâtului, când o socotim noi */
-function cardSect(N){
-  var M=N-8,M0=CARD_B.gat-8;            // 8 ochiuri stau la cele 4 îmbinări
+/* Desface un rând de raglan în cele cinci bucăți și cele patru îmbinări.
+   Întoarce null dacă rândul nu arată așa — și atunci nu-l atingem deloc. */
+function cardBuc(text){
+  var s=String(text||''),mt=/(,?\s*turn\s*)$/i.exec(s),coada=mt?mt[1]:'';
+  var t=coada?s.slice(0,s.length-coada.length):s;
+  var buc=t.split(','),run=[],grup=[],cur=null,m,k,i;
+  for(i=0;i<buc.length;i++){
+    if((m=RE_CARD_RUN.exec(buc[i]))){
+      if(cur){grup.push(cur);cur=null;}
+      if(grup.length!==run.length)return null;   // două bucăți lipite: nu e raglan
+      run.push({n:+(m[1]||m[2]),txt:buc[i]});
+    }else if(RE_CARD_INC.test(buc[i])){
+      if(!run.length)return null;                // rândul începe cu o creștere
+      if(!cur)cur={cons:0,prod:0,txt:[]};
+      k=RE_CARD_INCN.exec(buc[i]);
+      cur.cons++;cur.prod+=k?+k[1]:2;cur.txt.push(buc[i]);
+    }else return null;                           // orice altceva: nu e raglan
+  }
+  if(cur)grup.push(cur);
+  if(run.length!==5||grup.length!==4)return null;
+  var p=grup[0].prod-grup[0].cons;               // cât rămâne în plus la o îmbinare
+  for(i=1;i<4;i++)if(grup[i].prod-grup[i].cons!==p)return null;
+  if(p<2||p%2)return null;                       // îmbinări inegale: nu ne băgăm
+  return {run:run,grup:grup,pas:p/2,prod:grup[0].prod,cons:grup[0].cons,coada:coada};
+}
+function cardNum(b){return b.run.map(function(r){return r.n;});}
+function cardSuma(b){
+  var s=0,i;
+  for(i=0;i<5;i++)s+=b.run[i].n;
+  for(i=0;i<4;i++)s+=b.grup[i].cons;
+  return s;
+}
+function cardMuta(b,k){
+  return cardNum(b).map(function(x,i){return x+CARD_LAT[i]*b.pas*k;});
+}
+/* După ultimul rând de raglan îmbinarea nu se mai repetă: ochiurile ei se
+   împart între vecini. Când sunt în număr impar — „3 dc in next st”, de
+   pildă — cel din mijloc rămâne la corp, nu la mânecă. */
+function cardDupa(b,k){
+  var v=cardMuta(b,k),lo=Math.floor(b.prod/2),hi=b.prod-lo;
+  return [v[0]+hi,v[1]+2*lo,v[2]+2*hi,v[3]+2*lo,v[4]+hi];
+}
+/* Scrie rândul la loc cu alte numere: îmbinările rămân cuvânt cu cuvânt cum
+   le-ai scris tu, se schimbă numai cifrele celor cinci bucăți. */
+function cardScrie(b,v){
+  var out=[],i;
+  for(i=0;i<5;i++){
+    out.push(b.run[i].txt.replace(/\d+/,v[i]));
+    if(i<4)out=out.concat(b.grup[i].txt);
+  }
+  return out.join(',')+b.coada;
+}
+/* împărțirea gâtului, când o socotim noi; cons = câte ochiuri ia o îmbinare */
+function cardSect(N,cons){
+  var M=N-4*cons,M0=CARD_B.gat-8;
   if(M<5)return null;
   var f=Math.max(1,Math.round(M*CARD_B.fata/M0));
   var s=Math.max(1,Math.round(M*CARD_B.maneca/M0));
   var b=M-2*f-2*s;
-  while(b<1&&(f>1||s>1)){               // gât mic: ciupim din fețe și mâneci
+  while(b<1&&(f>1||s>1)){                        // gât mic: ciupim din fețe și mâneci
     if(s>1&&s>=f)s--;else if(f>1)f--;else break;
     b=M-2*f-2*s;
   }
   return b<1?null:[f,s,b,s,f];
 }
-/* Cele cinci bucăți dintr-un rând de raglan. Luăm numai numerele de după
-   „dc”, nu orice cifră: „2 dc in next st” e o creștere, nu o bucată. */
-function cardCiteste(t){
-  var m=String(t||'').match(/\bdc\s+\d+/gi);
-  if(!m||m.length!==5)return null;
-  return m.map(function(x){return parseInt(x.replace(/\D+/g,''),10);});
-}
-/* Rândul nou îl scriem peste al tău: schimbăm numai cele cinci numere, iar
-   creșterile rămân scrise exact cum le-ai scris tu. */
-function cardRescrie(sablon,v,re){
-  var i=0,n=0;
-  var out=String(sablon).replace(re,function(s){
-    n++;
-    return i<5?s.replace(/\d+/,v[i++]):s;
-  });
-  return n===5?out:null;
-}
-function cardRescrieRag(sablon,v){return cardRescrie(sablon,v,/\bdc\s+\d+/gi);}
-function cardRescrieSep(sablon,d){return cardRescrie(sablon,d,/\b(?:dc|sk)\s+\d+/gi);}
-function cardSuma(v){return v[0]+v[1]+v[2]+v[3]+v[4]+8;}
-function cardMuta(v,k){return v.map(function(x,i){return x+CARD_CRESTE[i]*k;});}
-function cardRandDin(v){
-  return 'dc '+v[0]+', inc, inc, dc '+v[1]+', inc, inc, dc '+v[2]+
-         ', inc, inc, dc '+v[3]+', inc, inc, dc '+v[4]+', turn';
-}
-/* După ultimul rând de raglan, cele 4 ochiuri ale fiecărei îmbinări se
-   împart în două: 2 rămân de o parte, 2 de cealaltă — adică încă doi pași. */
-function cardDupa(v,pasi){return cardMuta(v,pasi+2);}
-function cardSepRand(d){
-  return 'dc '+d[0]+', ch 2, sk '+d[1]+', dc '+d[2]+
-         ', ch 2, sk '+d[3]+', dc '+d[4]+', turn';
-}
-function cardScad(S){                   // 3 scăderi egal distribuite pe o tură de S
+function cardScad(S){                            // 3 scăderi pe o tură de S ochiuri
   var k=Math.floor(S/3)-2;
   if(k<0)return null;
   var r=S-3*(k+2);
   return '(dc '+k+', dc2tog) x3'+(r?', dc '+r:'');
 }
-/* Citim din rândurile părții gâtul, câte rânduri de raglan sunt scrise, unde
-   e rândul de separare și împărțirea — luată din rândul 2 așa cum e scris.
-   Dacă nu arată a platcă de cardigan, întoarcem null și nu umblăm la nimic. */
+function cardLant(txt){                          // câte lanțuri se pun la subraț
+  var m=/ch\s*(\d+)/i.exec(String(txt||''));
+  return m?+m[1]:2;
+}
+function cardRescrieSep(sablon,d){
+  var i=0,n=0;
+  var out=String(sablon).replace(/\b(?:dc|sk)\s+\d+/gi,function(s){
+    n++;return i<5?s.replace(/\d+/,d[i++]):s;
+  });
+  return n===5?out:null;
+}
+/* Citim din rândurile părții: gâtul, câte rânduri de raglan sunt scrise, unde
+   e rândul de separare, împărțirea din rândul 2 și ultimul rând de raglan. */
 function cardPlan(pt){
   if(!pt||!pt.rows||!pt.rows.length||esteManeca(pt))return null;
   var m=RE_CARD_CH.exec((pt.rows[0].text||'').trim());
   if(!m)return null;
   var R=0;
-  while(1+R<pt.rows.length&&RE_CARD_RAG.test((pt.rows[1+R].text||'').trim()))R++;
+  while(1+R<pt.rows.length&&cardBuc(pt.rows[1+R].text))R++;
   if(!R)return null;
-  var baza=cardCiteste(pt.rows[1].text)||cardSect(+m[1]);
-  if(!baza)return null;
-  /* Rândul de separare și mânecile ies din ULTIMUL rând de raglan, nu din
-     rândul 2: dacă ai sărit undeva la mijloc, ele urmează saltul tău. */
-  var ultim=cardCiteste(pt.rows[R].text)||baza;
+  var b=cardBuc(pt.rows[1].text),u=cardBuc(pt.rows[R].text);
   var sep=(1+R<pt.rows.length&&RE_CARD_SEP.test((pt.rows[1+R].text||'').trim()))?1+R:-1;
-  return {N:+m[1],R:R,sep:sep,baza:baza,ultim:ultim,dupa:cardDupa(ultim,0)};
+  return {N:+m[1],R:R,sep:sep,b:b,ultim:u,dupa:cardDupa(u,0),
+          lant:sep>=0?cardLant(pt.rows[sep].text):2};
 }
-/* Rescrie tot ce vine după rândul pe care l-ai schimbat: raglanul de sub el,
-   rândul de separare și mânecile. „dela” e rândul schimbat: 0 e gâtul, și
-   atunci împărțirea se socotește din nou; de la 1 în sus e un rând de raglan,
-   și atunci împărțirea e cea scrisă de tine acolo. Bifele nu se ating — dacă
-   ai bifat deja rânduri, uită-te peste ele, că numerele s-au mutat. */
+/* Rescrie tot ce vine după rândul schimbat: raglanul de sub el, rândul de
+   separare și mânecile. „dela” e rândul schimbat: 0 e gâtul, și atunci
+   împărțirea se socotește din nou; de la 1 în sus e un rând de raglan, și
+   atunci împărțirea e cea scrisă de tine acolo. Bifele nu se ating. */
 function adaptCardigan(p,pt,dela){
   var pl=cardPlan(pt);
   if(!pl)return null;
-  if(dela>pl.R)return null;             // ai schimbat un rând de după raglan
-  var j,baza;
-  if(dela>0){j=dela-1;baza=cardCiteste(pt.rows[dela].text);}
-  else{j=0;baza=cardSect(pl.N);}
-  if(!baza)return null;
-  /* scrisul rândului de la care plecăm — îl ducem mai departe la cele de sub el */
-  var sab=pt.rows[Math.max(1,dela)].text;
-  if(j===0)pt.rows[1].text=cardRescrieRag(sab,baza)||cardRandDin(baza);
-  for(var k=j+1;k<pl.R;k++){
-    var v=cardMuta(baza,k-j);
-    pt.rows[1+k].text=cardRescrieRag(sab,v)||cardRandDin(v);
+  if(dela>pl.R)return null;                      // ai schimbat un rând de după raglan
+  var j,b;
+  if(dela>0){j=dela-1;b=cardBuc(pt.rows[dela].text);}
+  else{
+    j=0;b=pl.b;
+    if(!b)return null;
+    var v=cardSect(pl.N,b.cons);
+    if(!v)return null;
+    pt.rows[1].text=cardScrie(b,v);
+    b=cardBuc(pt.rows[1].text);
   }
-  var d=cardDupa(baza,pl.R-1-j);
-  if(pl.sep>=0)pt.rows[pl.sep].text=cardRescrieSep(pt.rows[pl.sep].text,d)||cardSepRand(d);
-  var man=[d[1]+2,d[3]+2],mi=0;         // mâneca ia și cele 2 ochiuri de la subraț
+  if(!b)return null;
+  for(var k=j+1;k<pl.R;k++)pt.rows[1+k].text=cardScrie(b,cardMuta(b,k-j));
+  var d=cardDupa(b,pl.R-1-j);
+  if(pl.sep>=0)pt.rows[pl.sep].text=cardRescrieSep(pt.rows[pl.sep].text,d)||pt.rows[pl.sep].text;
+  var man=[d[1]+pl.lant,d[3]+pl.lant],mi=0;      // mâneca ia și lanțurile de la subraț
   (p.parts||[]).forEach(function(q){
     if(q===pt||!esteManeca(q)||!q.rows.length)return;
     var S=man[Math.min(mi++,1)],t0=(q.rows[0].text||'').trim();
@@ -1739,19 +1765,16 @@ function adaptCardigan(p,pt,dela){
   });
   return {pl:pl,d:d};
 }
-/* Rândurile mai pot rămâne în urmă: ai schimbat ceva înainte să existe
-   potrivirea, sau ai scos un rând de raglan. Nu umblăm la ele pe furiș —
-   îți punem un buton. */
+/* Nu ne legăm de rândurile de raglan: dacă ai sărit undeva, e treaba ta, iar
+   dacă saltul nu se poate croșeta îți spune oricum numărătoarea de pe rând.
+   Verificăm doar ce n-are cum să fie altfel: rândul de separare și mânecile,
+   care ies din ultimul rând de raglan. */
 function cardNepotrivit(p,pt,pl){
-  /* Nu ne legăm de rândurile de raglan: dacă ai sărit undeva, e treaba ta,
-     iar dacă saltul nu se poate croșeta, îți spune oricum numărătoarea de pe
-     rând. Se verifică doar ce n-are cum să fie altfel: rândul de separare și
-     mânecile, care ies din ultimul rând de raglan. */
   if(pl.sep>=0){
     var s0=(pt.rows[pl.sep].text||'').trim();
-    if((cardRescrieSep(s0,pl.dupa)||cardSepRand(pl.dupa))!==s0)return true;
+    if((cardRescrieSep(s0,pl.dupa)||s0)!==s0)return true;
   }
-  var man=[pl.dupa[1]+2,pl.dupa[3]+2],mi=0,gresit=false;
+  var man=[pl.dupa[1]+pl.lant,pl.dupa[3]+pl.lant],mi=0,gresit=false;
   (p.parts||[]).forEach(function(q){
     if(q===pt||!esteManeca(q)||!q.rows.length)return;
     var S=man[Math.min(mi++,1)],t0=(q.rows[0].text||'').trim();
@@ -1771,24 +1794,27 @@ function cardNepotrivit(p,pt,pl){
 function cardNoteText(p,pt){
   if(!p||p.model!=='Cardigan')return '';
   var pl=cardPlan(pt);
-  if(!pl){
+  if(!pl||!pl.b){
     /* gât scris, dar prea mic ca să se împartă: spunem de ce n-am potrivit nimic */
     var m=(pt&&pt.rows&&pt.rows.length&&!esteManeca(pt))?RE_CARD_CH.exec((pt.rows[0].text||'').trim()):null;
-    if(m&&!cardSect(+m[1]))
+    if(m&&!cardSect(+m[1],2))
       return 'Gâtul de '+ochiuriTxt(+m[1])+' e prea mic ca să se împartă în două fețe, '+
-        'două mâneci și spate, plus cele 8 ochiuri ale îmbinărilor. Pune cel puțin 13 '+
+        'două mâneci și spate, plus ochiurile îmbinărilor. Pune cel puțin 13 '+
         'și rândurile de mai jos se potrivesc singure.';
     return '';
   }
-  var b=pl.baza,d=pl.dupa,s=cardSuma(b);
-  var alt=(b[3]!==b[1]||b[4]!==b[0]);   // dacă ai scris cele două părți diferit
-  var t='Rândul 2 împarte gâtul în față '+b[0]+', mânecă '+b[1]+', spate '+b[2]+
-    (alt?', mânecă '+b[3]+', față '+b[4]:'')+
-    ', plus 2 ochiuri la fiecare dintre cele 4 îmbinări. După cele '+pl.R+' '+
-    (pl.R===1?'rând':'rânduri')+' de raglan: față '+d[0]+', spate '+d[2]+
-    ', mânecă '+d[1]+(alt?' și '+d[3]:'')+'. '+
-    (alt?'Mânecile pornesc de la '+(d[1]+2)+' și '+ochiuriTxt(d[3]+2)
-        :'Mânecile pornesc de la '+ochiuriTxt(d[1]+2))+', cu cele 2 de la subraț.';
+  var b=pl.b,v=cardNum(b),d=pl.dupa,s=cardSuma(b);
+  var alt=(v[3]!==v[1]||v[4]!==v[0]);
+  var t='Rândul 2 împarte gâtul în față '+v[0]+', mânecă '+v[1]+', spate '+v[2]+
+    (alt?', mânecă '+v[3]+', față '+v[4]:'')+', plus '+
+    (b.cons===1?'ochiul fiecărei îmbinări':b.cons+' ochiuri la fiecare îmbinare')+
+    '. După cele '+pl.R+' '+(pl.R===1?'rând':'rânduri')+' de raglan: față '+d[0]+
+    ', spate '+d[2]+', mânecă '+d[1]+(alt?' și '+d[3]:'')+'. Mânecile pornesc de la '+
+    (alt?d[1]+pl.lant+' și '+ochiuriTxt(d[3]+pl.lant):ochiuriTxt(d[1]+pl.lant))+
+    ', cu cele '+pl.lant+' de la subraț.';
+  if(b.prod%2)
+    t+=' Îmbinarea ta scoate '+b.prod+' ochiuri, număr impar: la separare cel din '+
+       'mijloc l-am lăsat la corp, nu la mânecă.';
   var rau='';
   if(s!==pl.N)rau='<b>Rândul 2 lucrează în '+s+', dar gâtul are '+pl.N+'.</b> ';
   else if(cardNepotrivit(p,pt,pl))
