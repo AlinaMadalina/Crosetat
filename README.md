@@ -72,6 +72,17 @@ când schimbi **gâtul** o socotim noi din nou, din proporțiile modelului de po
 (5 / 5 / 16 din 36), și atunci se reface tot raglanul. Primul rând e citit oricum ar fi
 scris: `ch 64`, `ch 64, turn` sau `ch64`.
 
+**Scrisul rămâne al tău.** Creșterea se poate scrie în mai multe feluri — `inc`, `dc inc`,
+`crestere`, `2 dc in next st` — și rândul de raglan e recunoscut cu oricare dintre ele.
+Rândurile de sub el nu se scriu după un șablon al nostru: se iau cuvânt cu cuvânt din
+rândul de la care pleacă și li se schimbă numai cele cinci numere de după `dc`
+(`cardRescrie`). Așa, dacă ai scris `dc inc`, și cele de dedesubt scriu `dc inc`. La fel
+rândul de separare și prima tură a mânecii.
+
+Se presupune structura modelului: cinci bucăți și câte **două** creșteri la fiecare
+dintre cele 4 îmbinări. Un rând scris cu altă structură nu e recunoscut, deci nu e atins
+— și nici nu trage nimic după el.
+
 **Ce nu atingem:** rândurile de raglan de deasupra celui schimbat, și bifele. Dacă sari
 undeva la mijloc, saltul rămâne al tău, iar rândul de separare și mânecile urmează
 **ultimul** rând de raglan, nu rândul 2. Dacă saltul nu se poate croșeta, îți spune

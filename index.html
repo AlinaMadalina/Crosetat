@@ -1618,8 +1618,16 @@ var CARD_B={gat:44,fata:5,maneca:5,spate:16};
 var CARD_CRESTE=[1,2,2,2,1];     // câte îmbinări are lângă ea fiecare bucată
 /* primul rând îl luăm oricum l-ai scrie: „ch 64”, „ch 64, turn”, „ch64” */
 var RE_CARD_CH=/^ch\s*(\d+)\s*(?:,\s*turn\s*)?$/i;
-var RE_CARD_RAG=/^dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+,\s*inc,\s*inc,\s*dc\s+\d+\s*,\s*turn$/i;
-var RE_CARD_SEP=/^dc\s+\d+,\s*ch\s*2,\s*sk\s+\d+,\s*dc\s+\d+,\s*ch\s*2,\s*sk\s+\d+,\s*dc\s+\d+\s*,\s*turn$/i;
+/* O creștere o poți scrie în mai multe feluri, și parserul le ia pe toate:
+   „inc”, „dc inc”, „crestere”, „2 dc in next st”. Rândul de raglan îl
+   recunoaștem cu oricare dintre ele, nu doar cu „inc”. */
+var CARD_INC='(?:(?:sc|hdc|dc|tr)\\s*)?(?:inc|increase|cr|crestere)|\\d+\\s*(?:sc|hdc|dc|tr)\\s+in\\s+next\\s+st';
+var RE_CARD_RAG=(function(){
+  var I='\\s*(?:'+CARD_INC+')\\s*',D='\\s*dc\\s+\\d+\\s*';
+  return new RegExp('^'+D+','+I+','+I+','+D+','+I+','+I+','+D+','+I+','+I+','+D+','+I+','+I+','+D+
+                    '(?:,\\s*turn\\s*)?$','i');
+})();
+var RE_CARD_SEP=/^\s*dc\s+\d+\s*,\s*ch\s*\d+\s*,\s*sk\s+\d+\s*,\s*dc\s+\d+\s*,\s*ch\s*\d+\s*,\s*sk\s+\d+\s*,\s*dc\s+\d+\s*(?:,\s*turn\s*)?$/i;
 var RE_MAN_1=/^dc\s+\d+$/i;
 var RE_MAN_SC=/^\(dc\s+\d+,\s*dc2tog\)\s*x\s*3(\s*,\s*dc\s+\d+)?$/i;
 
@@ -1639,11 +1647,25 @@ function cardSect(N){
   }
   return b<1?null:[f,s,b,s,f];
 }
-/* cele cinci numere dintr-un rând de raglan, așa cum le-ai scris tu */
+/* Cele cinci bucăți dintr-un rând de raglan. Luăm numai numerele de după
+   „dc”, nu orice cifră: „2 dc in next st” e o creștere, nu o bucată. */
 function cardCiteste(t){
-  var m=String(t||'').match(/\d+/g);
-  return (m&&m.length===5)?m.map(Number):null;
+  var m=String(t||'').match(/\bdc\s+\d+/gi);
+  if(!m||m.length!==5)return null;
+  return m.map(function(x){return parseInt(x.replace(/\D+/g,''),10);});
 }
+/* Rândul nou îl scriem peste al tău: schimbăm numai cele cinci numere, iar
+   creșterile rămân scrise exact cum le-ai scris tu. */
+function cardRescrie(sablon,v,re){
+  var i=0,n=0;
+  var out=String(sablon).replace(re,function(s){
+    n++;
+    return i<5?s.replace(/\d+/,v[i++]):s;
+  });
+  return n===5?out:null;
+}
+function cardRescrieRag(sablon,v){return cardRescrie(sablon,v,/\bdc\s+\d+/gi);}
+function cardRescrieSep(sablon,d){return cardRescrie(sablon,d,/\b(?:dc|sk)\s+\d+/gi);}
 function cardSuma(v){return v[0]+v[1]+v[2]+v[3]+v[4]+8;}
 function cardMuta(v,k){return v.map(function(x,i){return x+CARD_CRESTE[i]*k;});}
 function cardRandDin(v){
@@ -1694,16 +1716,21 @@ function adaptCardigan(p,pt,dela){
   if(dela>0){j=dela-1;baza=cardCiteste(pt.rows[dela].text);}
   else{j=0;baza=cardSect(pl.N);}
   if(!baza)return null;
-  if(j===0)pt.rows[1].text=cardRandDin(baza);
-  for(var k=j+1;k<pl.R;k++)pt.rows[1+k].text=cardRandDin(cardMuta(baza,k-j));
+  /* scrisul rândului de la care plecăm — îl ducem mai departe la cele de sub el */
+  var sab=pt.rows[Math.max(1,dela)].text;
+  if(j===0)pt.rows[1].text=cardRescrieRag(sab,baza)||cardRandDin(baza);
+  for(var k=j+1;k<pl.R;k++){
+    var v=cardMuta(baza,k-j);
+    pt.rows[1+k].text=cardRescrieRag(sab,v)||cardRandDin(v);
+  }
   var d=cardDupa(baza,pl.R-1-j);
-  if(pl.sep>=0)pt.rows[pl.sep].text=cardSepRand(d);
+  if(pl.sep>=0)pt.rows[pl.sep].text=cardRescrieSep(pt.rows[pl.sep].text,d)||cardSepRand(d);
   var man=[d[1]+2,d[3]+2],mi=0;         // mâneca ia și cele 2 ochiuri de la subraț
   (p.parts||[]).forEach(function(q){
     if(q===pt||!esteManeca(q)||!q.rows.length)return;
-    var S=man[Math.min(mi++,1)];
-    if(!RE_MAN_1.test((q.rows[0].text||'').trim()))return;
-    q.rows[0].text='dc '+S;
+    var S=man[Math.min(mi++,1)],t0=(q.rows[0].text||'').trim();
+    if(!RE_MAN_1.test(t0))return;
+    q.rows[0].text=t0.replace(/\d+/,S);
     for(var i=1;i<q.rows.length;i++){
       if(!RE_MAN_SC.test((q.rows[i].text||'').trim()))continue;
       var nou=cardScad(S);
@@ -1720,13 +1747,16 @@ function cardNepotrivit(p,pt,pl){
      iar dacă saltul nu se poate croșeta, îți spune oricum numărătoarea de pe
      rând. Se verifică doar ce n-are cum să fie altfel: rândul de separare și
      mânecile, care ies din ultimul rând de raglan. */
-  if(pl.sep>=0&&(pt.rows[pl.sep].text||'').trim()!==cardSepRand(pl.dupa))return true;
+  if(pl.sep>=0){
+    var s0=(pt.rows[pl.sep].text||'').trim();
+    if((cardRescrieSep(s0,pl.dupa)||cardSepRand(pl.dupa))!==s0)return true;
+  }
   var man=[pl.dupa[1]+2,pl.dupa[3]+2],mi=0,gresit=false;
   (p.parts||[]).forEach(function(q){
     if(q===pt||!esteManeca(q)||!q.rows.length)return;
     var S=man[Math.min(mi++,1)],t0=(q.rows[0].text||'').trim();
     if(!RE_MAN_1.test(t0))return;
-    if(t0!=='dc '+S){gresit=true;return;}
+    if(t0.replace(/\d+/,S)!==t0){gresit=true;return;}
     for(var i=1;i<q.rows.length;i++){
       var r=(q.rows[i].text||'').trim();
       if(!RE_MAN_SC.test(r))continue;
