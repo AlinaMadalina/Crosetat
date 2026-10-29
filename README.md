@@ -52,33 +52,43 @@ după aceea.
 | Stea | pentagon + laturi | vârful scris o dată, lucrat pe fiecare latură |
 | Cardigan | plat + 2 cercuri | raglan de sus în jos, cu desenul pieselor; mânecile sunt două părți separate; mărimea se ia din primul rând |
 
-### Cardiganul se potrivește singur la gât
+### Cardiganul se potrivește singur
 
-Primul rând al platcăi e gâtul, și din el iese tot restul. Când îl salvezi, se rescriu
-singure rândurile de raglan, rândul de separare și amândouă mânecile.
+Regula e una singură: **schimbi un rând, și cele de sub el îl urmează** — până la rândul
+de separare și la amândouă mânecile.
 
-Cum: gâtul se împarte în față, mânecă, spate, mânecă, față, plus câte 2 ochiuri la
-fiecare dintre cele 4 îmbinări. Proporțiile sunt cele ale modelului de pornire —
-5 / 5 / 16 din 36 — întinse pe gâtul scris de tine, ca forma să rămână aceeași oricât de
-mare îl faci. Un rând de raglan adaugă 8 ochiuri, dar nu la fel peste tot: fața crește cu
-1, că are o singură îmbinare lângă ea, iar mâneca și spatele cu 2, că au câte două. După
-ultimul rând, cele 4 ochiuri ale fiecărei îmbinări se împart în două, câte 2 de fiecare
-parte — de acolo ies numerele din rândul de separare. Mâneca pornește de la ochiurile ei
-plus 2 de la subraț, iar scăderile se redistribuie pe tura nouă.
+Gâtul se împarte în cinci bucăți — față, mânecă, spate, mânecă, față — cu câte 2 ochiuri
+la fiecare dintre cele 4 îmbinări dintre ele. Un rând de raglan adaugă 8 ochiuri, dar nu
+la fel peste tot: fiecare bucată crește cu 1 pentru fiecare îmbinare de lângă ea, deci
+fețele cu 1 și mânecile și spatele cu 2 (`CARD_CRESTE = [1,2,2,2,1]`). După ultimul rând,
+cele 4 ochiuri ale fiecărei îmbinări se împart în două, câte 2 de fiecare parte — încă
+doi pași, și de acolo ies numerele din rândul de separare. Mâneca pornește de la ochiurile
+ei plus 2 de la subraț, iar scăderile se redistribuie pe tura nouă, cu rest acolo unde nu
+se împarte exact la 3.
 
-Primul rând e citit oricum ar fi scris: `ch 64`, `ch 64, turn` sau `ch64`.
+**Cine dă împărțirea:** rândul 2, așa cum e scris. Dacă vrei altă croială decât cea din
+model — fețe mai late, mâneci mai înguste — o scrii acolo și restul vine după ea. Numai
+când schimbi **gâtul** o socotim noi din nou, din proporțiile modelului de pornire
+(5 / 5 / 16 din 36), și atunci se reface tot raglanul. Primul rând e citit oricum ar fi
+scris: `ch 64`, `ch 64, turn` sau `ch64`.
 
-Se ating numai rândurile care încă arată cum le-a scris modelul: dacă ai schimbat tu un
-rând de raglan, numărătoarea se oprește acolo și restul rămâne al tău. Bifele nu se
-schimbă. Câte rânduri de raglan sunt se citește din rânduri, nu se ține minte, deci dacă
-ștergi unul și salvezi primul rând încă o dată, totul se reface după numărul nou.
+**Ce nu atingem:** rândurile de raglan de deasupra celui schimbat, și bifele. Dacă sari
+undeva la mijloc, saltul rămâne al tău, iar rândul de separare și mânecile urmează
+**ultimul** rând de raglan, nu rândul 2. Dacă saltul nu se poate croșeta, îți spune
+oricum numărătoarea de pe rând.
 
-Când rândurile au rămas în urma gâtului — gâtul schimbat înainte să existe potrivirea, sau
-un rând de raglan șters — nu le rescriem pe furiș: nota spune „Rândurile de mai jos au
-rămas pe gâtul vechi” și apare butonul **Potrivește rândurile**.
+**Când ceva a rămas în urmă** — gâtul schimbat înainte să existe potrivirea, sau un rând
+de raglan șters — nu rescriem pe furiș: apare o notă și butonul **Potrivește rândurile**.
+Butonul face cea mai mică reparație care are sens: dacă rândul 2 nu lucrează în câte
+ochiuri are gâtul, gâtul e cel bun și se împarte tot din nou; altfel rândurile de raglan
+sunt ale tale și se potrivesc doar separarea și mânecile.
 
-Funcțiile sunt `cardSect`, `cardRand`, `cardSepRand`, `cardDupa`, `cardScad`, `cardPlan`,
-`cardNepotrivit`, `adaptCardigan` și `cardNoteText`, lângă `useModel` în `index.html`.
+Câte rânduri de raglan sunt se citește din rânduri, nu se ține minte, deci dacă ștergi
+unul și salvezi rândul 2 încă o dată, chiar neschimbat, totul se reface după numărul nou.
+
+Funcțiile sunt `cardSect`, `cardCiteste`, `cardSuma`, `cardMuta`, `cardRandDin`,
+`cardDupa`, `cardSepRand`, `cardScad`, `cardPlan`, `cardNepotrivit`, `adaptCardigan` și
+`cardNoteText`, lângă `useModel` în `index.html`.
 
 
 Modelele stau în `MODELE`, lângă restul datelor din `index.html` — ca să adaugi unul,
